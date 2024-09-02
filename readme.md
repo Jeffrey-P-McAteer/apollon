@@ -5,4 +5,9 @@
 given an initial state, state change functions, and some definition of a time domain over which to iterate.
 
 
+# Testing
 
+```bash
+cargo run --release -- example-data/entities.csv example-data/deltas.json -n 128
+
+```

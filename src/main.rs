@@ -46,11 +46,25 @@ pub fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs::Valu
         .flexible(true) // Allow empty colums on some csv lines
         .from_reader(file_string_content.as_bytes());
 
+      // We cannot hold a ref to the headers b/c it creates a mutable borrow of `rdr`.
+      // We instead use a temp mut borrow to parse, then clone the result.
+      let _temp_empty_str_rec = csv::StringRecord::new();
+      let csv_headers = rdr.headers().unwrap_or(&_temp_empty_str_rec).clone();
+      let num_headers = csv_headers.len();
+
       let mut iter = rdr.records();
 
       while let Some(one_row) = iter.next() {
         if let Ok(row_str_rec) = one_row {
-          //v.push(one_map);
+          let mut parsed_row = HashMap::<String, structs::Value>::new();
+
+          for col_i in 0..num_headers {
+            if let (Some(header_s), Some(val_s)) = (csv_headers.get(col_i), row_str_rec.get(col_i)) {
+              parsed_row.insert(header_s.to_string(), structs::Value::from_str(val_s));
+            }
+          }
+
+          v.push(parsed_row);
         }
       }
 

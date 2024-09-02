@@ -21,7 +21,6 @@ pub enum Value {
   Integer(i64),
   Double(f64),
   String(String),
-
 }
 
 impl Value {
@@ -37,6 +36,30 @@ impl Value {
     }
   }
 }
+
+impl std::hash::Hash for Value {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    match self {
+      Value::Integer(_i64) => {
+        _i64.hash(state);
+      }
+      Value::Double(_f64) => {
+        //_f64.hash(state);
+        if _f64.is_nan() {
+          (0 as i64).hash(state);
+        }
+        else {
+          let large_num = (_f64 * 1_000_000_000.0) as i64;
+          large_num.hash(state);
+        }
+      }
+      Value::String(s) => {
+        s.hash(state);
+      }
+    }
+  }
+}
+
 
 impl<'de> serde::Deserialize<'de> for Value {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

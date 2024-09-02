@@ -30,10 +30,57 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
 
 async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Error>> {
 
+  let all_devices = emu_core::device::Device::all().await;
   if &(args.preferred_gpu_name) == "LIST" || &(args.preferred_gpu_name) == "list" {
-
+    println!("We have {} GPU devices: ", all_devices.len());
+    for i in 0..all_devices.len() {
+      if let Some(device_info) = &all_devices[i].info {
+        let dt_str = format!("{:?}", device_info.device_type());
+        println!("{: >3}: {: <14} {: <38} vendor=0x{:x} device=0x{:x}", i, dt_str, device_info.name(), device_info.vendor_id(), device_info.device_id());
+      }
+      else {
+        println!("{: >3}: NO INFO", i);
+      }
+    }
     return Ok(());
   }
+
+
+  if all_devices.len() < 1 {
+    eprintln!("Fatal Error: NO GPU DEVICES!");
+    return Ok(())
+  }
+
+  // Get preferred GPU device by name
+  let mut gpu_device_i: usize = 0;
+  if args.preferred_gpu_name.len() > 0 {
+    let lower_pref_name = args.preferred_gpu_name.to_lowercase();
+    for i in 0..all_devices.len() {
+      if let Some(device_info) = &all_devices[i].info {
+        let d_name = device_info.name().to_lowercase();
+        if d_name.contains(&lower_pref_name) {
+          gpu_device_i = i;
+          break;
+        }
+      }
+    }
+  }
+  else {
+    // Grab first discrete GPU
+    for i in 0..all_devices.len() {
+      if let Some(device_info) = &all_devices[i].info {
+        if device_info.device_type() == emu_core::device::DeviceType::DiscreteGpu {
+          gpu_device_i = i;
+          break;
+        }
+      }
+    }
+  }
+
+  let mut gpu_device = &all_devices[gpu_device_i];
+
+  println!("selected gpu_device = {:?}", gpu_device.info );
+
 
   let t0_data = read_ld_file(&args.data_file_path).await;
   let delta_data = read_ld_file(&args.delta_file_path).await;

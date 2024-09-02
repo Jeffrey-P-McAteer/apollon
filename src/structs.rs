@@ -12,6 +12,10 @@ pub struct Args {
     /// Number of simulation steps to run
     #[arg(short, long, default_value_t = 1)]
     pub num_steps: u64,
+
+    /// Preferred GPU name to use. Pass "LIST" to list all GPUs detected on this system.
+    #[arg(short, long, default_value_t = String::new() )]
+    pub preferred_gpu_name: String,
 }
 
 //#[derive(Debug, serde::Serialize, serde::Deserialize)]

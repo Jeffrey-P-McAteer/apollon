@@ -1,3 +1,6 @@
+// Guess who doesn't care right now?
+#![allow(unused_variables)]
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 
@@ -6,25 +9,47 @@ use clap::Parser;
 pub mod structs;
 
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>>  {
   let args = structs::Args::parse();
 
-  println!("args = {:?}", &args);
+  let rt  = tokio::runtime::Builder::new_multi_thread()
+    .worker_threads(4)
+    .thread_stack_size(8 * 1024 * 1024)
+    .enable_time()
+    .enable_io()
+    .build()?;
 
-  let t0_data = read_ld_file(&args.data_file_path);
-  let delta_data = read_ld_file(&args.delta_file_path);
+  rt.block_on(async {
+    if let Err(e) = main_async(&args).await {
+      eprintln!("[ main_async ] {:?}", e);
+    }
+  });
+
+  Ok(())
+}
+
+async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Error>> {
+
+  if &(args.preferred_gpu_name) == "LIST" || &(args.preferred_gpu_name) == "list" {
+
+    return Ok(());
+  }
+
+  let t0_data = read_ld_file(&args.data_file_path).await;
+  let delta_data = read_ld_file(&args.delta_file_path).await;
 
   println!("t0_data = {:?}", &t0_data);
   println!("delta_data = {:?}", &delta_data);
 
 
-
+  Ok(())
 }
 
-pub fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs::Value>> {
+
+pub async fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs::Value>> {
   let mut v: Vec<HashMap<String, structs::Value>> = vec![];
 
-  if let Ok(file_string_content) = std::fs::read_to_string(path) {
+  if let Ok(file_string_content) = tokio::fs::read_to_string(path).await {
     if let Ok(mut file_json_content) = serde_jsonrc::from_str(&file_string_content) {
       v.append(&mut file_json_content);
     }

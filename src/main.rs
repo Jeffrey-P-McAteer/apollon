@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
 
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, Copy, Clone, Default, Debug)]
+#[derive(zerocopy::FromZeroes, zerocopy::AsBytes, zerocopy::FromBytes, Copy, Clone, Default, Debug)]
 pub struct Rectangle {
     x: u32,
     y: u32,
@@ -76,7 +76,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
   // then we compile some GLSL code using the GlslCompile compiler and
   // the GlobalCache for caching compiler artifacts
-  let c = compile::<String, GlslCompile, _, GlobalCache>(
+  //let c = compile::<String, GlslCompile, _, GlobalCache>(
+  let c = compile::<String, _, _, GlobalCache>(
       GlslBuilder::new()
           .set_entry_point_name("main")
           .add_param_mut()

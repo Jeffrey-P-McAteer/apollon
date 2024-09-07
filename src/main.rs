@@ -38,6 +38,13 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     println!("Selected Compute device: {}", name);
   }
 
+  let t0_data = utils::read_ld_file(&args.data_file_path).await;
+  let delta_data = utils::read_ld_file(&args.delta_file_path).await;
+
+  println!("t0_data = {:?}", &t0_data);
+  println!("delta_data = {:?}", &delta_data);
+
+
 
   use opencl3::command_queue::{CommandQueue, CL_QUEUE_PROFILING_ENABLE};
   use opencl3::context::Context;

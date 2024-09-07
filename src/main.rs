@@ -142,7 +142,9 @@ const KERNEL_NAME: &str = "saxpy_float";
   let start_time = kernel_event.profiling_command_start()?;
   let end_time = kernel_event.profiling_command_end()?;
   let duration = end_time - start_time;
-  println!("kernel execution duration (ns): {}", duration);
+
+  use num_format::{Locale, ToFormattedString};
+  println!("kernel execution duration (ns): {}", duration.to_formatted_string(&Locale::en) );
 
 
   Ok(())

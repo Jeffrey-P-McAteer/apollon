@@ -55,3 +55,58 @@ pub async fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs
 
   return v;
 }
+
+pub async fn get_pref_device(args: &structs::Args) -> Result<opencl3::types::cl_device_id, Box<dyn std::error::Error>> {
+
+  let lower_pref_name = args.preferred_gpu_name.to_lowercase();
+  let mut gpu_device_ids = opencl3::device::get_all_devices(opencl3::device::CL_DEVICE_TYPE_GPU)?;
+  gpu_device_ids.append(
+    &mut opencl3::device::get_all_devices(opencl3::device::CL_DEVICE_TYPE_CPU)?
+  );
+  // ^^ also opencl3::device::CL_DEVICE_TYPE_ALL
+
+  let gpu_device_ids = gpu_device_ids;
+
+  if lower_pref_name.len() > 0 {
+    // List if requested
+    if lower_pref_name == "list" {
+      for device_id in &gpu_device_ids {
+        let d = opencl3::device::Device::new(*device_id);
+        if let Ok(name) = d.name() {
+          println!("{: <32} max_compute_units={: <3} max_clock_frequency={: <5} max_work_group_size={: <5}",
+            name,
+            d.max_compute_units().unwrap_or(0),
+            d.max_clock_frequency().unwrap_or(0),
+            d.max_work_group_size().unwrap_or(0)
+          );
+        }
+      }
+      return Err(Box::from("Listing GPUs complete"));
+    }
+    // Search & return first match
+    for device_id in &gpu_device_ids {
+      let d = opencl3::device::Device::new(*device_id);
+      if let Ok(name) = d.name() {
+        let name = name.to_lowercase();
+        if name.contains(&lower_pref_name) {
+          return Ok(*device_id);
+        }
+      }
+    }
+  }
+
+  // No preferred GPU device name, return the greatest of .max_compute_units() * .max_work_group_size() from all GPUs
+  let mut largest_compute_id = *( gpu_device_ids.first().clone().ok_or("No compute devices available!")? );
+  let mut largest_compute_score: usize = 0;
+  for device_id in &gpu_device_ids {
+    let d = opencl3::device::Device::new(*device_id);
+    let score = d.max_compute_units().unwrap_or(0) as usize * d.max_work_group_size().unwrap_or(0);
+    if score > largest_compute_score {
+      largest_compute_id = *device_id;
+      largest_compute_score = score as usize;
+    }
+  }
+
+  return Ok(largest_compute_id);
+
+}

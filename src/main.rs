@@ -32,12 +32,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
 
 async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Error>> {
 
-  let device_ids = opencl3::device::get_all_devices(opencl3::device::CL_DEVICE_TYPE_GPU)?;
-  // println!("device_ids = {:?}", device_ids);
-
-  for device_id in device_ids {
-    let d = opencl3::device::Device::new(device_id);
-    println!("{:?} > {:?}", device_id, d.name() );
+  let pref_dev_id = utils::get_pref_device(args).await?;
+  let d = opencl3::device::Device::new(pref_dev_id);
+  if let Ok(name) = d.name() {
+    println!("Selected Compute device: {}", name);
   }
 
 

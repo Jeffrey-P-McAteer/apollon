@@ -32,15 +32,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
 
 async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Error>> {
 
-  let pref_dev_id = utils::get_pref_device(args).await?;
+  let mut simcontrol = utils::read_simcontrol_file(&args.simcontrol_file_path).await?;
+  // Overwrite any simcontrol args w/ cli-specified args
+  utils::inplace_update_simcontrol_from_args(&mut simcontrol, args);
+  let simcontrol = simcontrol;
+
+
+  let pref_dev_id = utils::get_pref_device(&simcontrol.preferred_gpu_name.to_lowercase()).await?;
   let device = opencl3::device::Device::new(pref_dev_id);
   if let Ok(name) = device.name() {
     println!("Selected Compute device: {}", name);
   }
 
-  let t0_data = utils::read_ld_file(&args.data_file_path).await;
-  let cl_kernels = utils::read_cl_kernel_file(&args.cl_kernels_file_path).await;
-  let delta_data = utils::read_ld_file(&args.delta_file_path).await;
+  let t0_data = utils::read_ld_file(&simcontrol.data_file_path).await;
+  let cl_kernels = utils::read_cl_kernel_file(&simcontrol.cl_kernels_file_path).await?;
+  let delta_data = utils::read_ld_file(&simcontrol.delta_file_path).await;
 
   println!("t0_data = {:?}", &t0_data);
   println!("cl_kernels = {:?}", &cl_kernels);

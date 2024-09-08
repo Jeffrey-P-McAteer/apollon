@@ -2,6 +2,42 @@
 
 #[derive(Debug, clap::Parser)]
 pub struct Args {
+    /// A data file (.toml, .json, etc.) containing simulation configuration data.
+    pub simcontrol_file_path: std::path::PathBuf,
+
+
+    /// A data file (.csv, .json, etc.) containing T=0 data for the simulation.
+    #[arg(short, long)]
+    pub data_file_path: Option<std::path::PathBuf>,
+
+    /// A data file (.csv, .json, etc.) containing entity & field deltas.
+    /// One column in data_file_path and delta_file_path MUST be identical and is used to specify per-entity field delta functions.
+    #[arg(short, long)]
+    pub delta_file_path: Option<std::path::PathBuf>,
+
+    /// A data file (.toml) containing OpenCL kernels to be executed,
+    /// and which is expected to supply the delta_file_path with functions to use.
+    #[arg(short, long)]
+    pub cl_kernels_file_path: Option<std::path::PathBuf>,
+
+    /// Number of simulation steps to run
+    #[arg(short, long)]
+    pub num_steps: Option<u64>,
+
+    /// Preferred GPU name to use. Pass "LIST" to list all GPUs detected on this system.
+    #[arg(short, long)]
+    pub preferred_gpu_name: Option<String>,
+
+}
+
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct SimControl_file { // utility to allow us to specify name of value
+  pub simulation: SimControl,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct SimControl {
     /// A data file (.csv, .json, etc.) containing T=0 data for the simulation.
     pub data_file_path: std::path::PathBuf,
 
@@ -14,13 +50,15 @@ pub struct Args {
     pub cl_kernels_file_path: std::path::PathBuf,
 
     /// Number of simulation steps to run
-    #[arg(short, long, default_value_t = 1)]
     pub num_steps: u64,
 
     /// Preferred GPU name to use. Pass "LIST" to list all GPUs detected on this system.
-    #[arg(short, long, default_value_t = String::new() )]
     pub preferred_gpu_name: String,
+
 }
+
+
+
 
 //#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[derive(Debug, serde::Serialize)]
@@ -114,4 +152,3 @@ pub struct CL_Kernel {
   pub name: String,
   pub source: String,
 }
-

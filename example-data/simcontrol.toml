@@ -1,0 +1,18 @@
+
+# The simulation control file is used to specify all input data
+# for a simulation.
+# It can also specify graph output types.
+# CLI args overwrite the simulation control values.
+
+[simulation]
+data_file_path = "example-data/entities.csv"
+delta_file_path = "example-data/deltas.json"
+cl_kernels_file_path = "example-data/cl-kernels.toml"
+
+num_steps = 100
+preferred_gpu_name = "nvidia"
+
+
+
+
+

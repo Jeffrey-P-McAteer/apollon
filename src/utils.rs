@@ -60,7 +60,7 @@ pub async fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs
   return v;
 }
 
-pub async fn read_cl_kernel_file(path: &std::path::Path) -> structs::CL_Kernels {
+pub async fn read_cl_kernel_file(path: &std::path::Path) -> Result<structs::CL_Kernels, Box<dyn std::error::Error>> {
   let mut v: structs::CL_Kernels = structs::CL_Kernels::default();
 
   if let Ok(file_string_content) = tokio::fs::read_to_string(path).await {
@@ -70,15 +70,41 @@ pub async fn read_cl_kernel_file(path: &std::path::Path) -> structs::CL_Kernels 
     else if let Ok(mut file_json_content) = serde_jsonrc::from_str::<structs::CL_Kernels>(&file_string_content) {
       v.kernel.append(&mut file_json_content.kernel);
     }
-    // Not supporting other file formats, that's dumb.
+    else {
+      return Err(Box::from( format!("Error, kernel file cannot be read b/c it is not TOML or JSON data in the expected format: {}", path.display() ) ));
+    }
   }
 
-  return v;
+  return Ok(v);
 }
 
-pub async fn get_pref_device(args: &structs::Args) -> Result<opencl3::types::cl_device_id, Box<dyn std::error::Error>> {
 
-  let lower_pref_name = args.preferred_gpu_name.to_lowercase();
+pub async fn read_simcontrol_file(path: &std::path::Path) -> Result<structs::SimControl, Box<dyn std::error::Error>> {
+
+  if let Ok(file_string_content) = tokio::fs::read_to_string(path).await {
+    // First parse the format w/ keys under [simulation]
+    if let Ok(file_toml_content) = toml::from_str::<structs::SimControl_file>(&file_string_content) {
+      return Ok(file_toml_content.simulation);
+    }
+    else if let Ok(mut file_json_content) = serde_jsonrc::from_str::<structs::SimControl_file>(&file_string_content) {
+      return Ok(file_json_content.simulation);
+    }
+
+    // Then parse the bare format
+    if let Ok(file_toml_content) = toml::from_str::<structs::SimControl>(&file_string_content) {
+      return Ok(file_toml_content);
+    }
+    else if let Ok(mut file_json_content) = serde_jsonrc::from_str::<structs::SimControl>(&file_string_content) {
+      return Ok(file_json_content);
+    }
+  }
+
+  return Err(Box::from( format!("Error, simcontrol file cannot be read b/c it is not TOML or JSON data in the expected format: {}", path.display() ) ));
+}
+
+
+pub async fn get_pref_device(lower_pref_name: &str) -> Result<opencl3::types::cl_device_id, Box<dyn std::error::Error>> {
+
   let mut gpu_device_ids = opencl3::device::get_all_devices(opencl3::device::CL_DEVICE_TYPE_GPU)?;
   gpu_device_ids.append(
     &mut opencl3::device::get_all_devices(opencl3::device::CL_DEVICE_TYPE_CPU)?
@@ -130,3 +156,35 @@ pub async fn get_pref_device(args: &structs::Args) -> Result<opencl3::types::cl_
   return Ok(largest_compute_id);
 
 }
+
+pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl, cli_args: &structs::Args) {
+  if let Some(num_steps) = &cli_args.num_steps {
+    println!("Overriding simcontrol num_steps={} with cli arg value ={}", simcontrol.num_steps, num_steps);
+    simcontrol.num_steps = *num_steps;
+  }
+
+  if let Some(preferred_gpu_name) = &cli_args.preferred_gpu_name {
+    println!("Overriding simcontrol preferred_gpu_name={} with cli arg value ={}", simcontrol.preferred_gpu_name, preferred_gpu_name);
+    simcontrol.preferred_gpu_name = preferred_gpu_name.to_string();
+  }
+
+  if let Some(data_file_path) = &cli_args.data_file_path {
+    println!("Overriding simcontrol data_file_path={} with cli arg value ={}", simcontrol.data_file_path.display(), data_file_path.display());
+    simcontrol.data_file_path = data_file_path.clone();
+  }
+
+  if let Some(delta_file_path) = &cli_args.delta_file_path {
+    println!("Overriding simcontrol delta_file_path={} with cli arg value ={}", simcontrol.delta_file_path.display(), delta_file_path.display());
+    simcontrol.delta_file_path = delta_file_path.clone();
+  }
+
+  if let Some(cl_kernels_file_path) = &cli_args.cl_kernels_file_path {
+    println!("Overriding simcontrol cl_kernels_file_path={} with cli arg value ={}", simcontrol.cl_kernels_file_path.display(), cl_kernels_file_path.display());
+    simcontrol.cl_kernels_file_path = cl_kernels_file_path.clone();
+  }
+
+
+}
+
+
+

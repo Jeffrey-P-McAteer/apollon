@@ -10,11 +10,6 @@ pub struct Args {
     #[arg(short, long)]
     pub data_file_path: Option<std::path::PathBuf>,
 
-    /// A data file (.csv, .json, etc.) containing entity & field deltas.
-    /// One column in data_file_path and delta_file_path MUST be identical and is used to specify per-entity field delta functions.
-    #[arg(short, long)]
-    pub delta_file_path: Option<std::path::PathBuf>,
-
     /// A data file (.toml) containing OpenCL kernels to be executed,
     /// and which is expected to supply the delta_file_path with functions to use.
     #[arg(short, long)]
@@ -49,10 +44,6 @@ pub struct SimControl_file { // utility to allow us to specify name of value
 pub struct SimControl {
     /// A data file (.csv, .json, etc.) containing T=0 data for the simulation.
     pub data_file_path: std::path::PathBuf,
-
-    /// A data file (.csv, .json, etc.) containing entity & field deltas.
-    /// One column in data_file_path and delta_file_path MUST be identical and is used to specify per-entity field delta functions.
-    pub delta_file_path: std::path::PathBuf,
 
     /// A data file (.toml) containing OpenCL kernels to be executed,
     /// and which is expected to supply the delta_file_path with functions to use.

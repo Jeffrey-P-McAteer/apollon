@@ -6,7 +6,6 @@
 
 [simulation]
 data_file_path = "example-data/entities.csv"
-delta_file_path = "example-data/deltas.json"
 cl_kernels_file_path = "example-data/cl-kernels.toml"
 
 num_steps = 100

@@ -173,11 +173,6 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
     simcontrol.data_file_path = data_file_path.clone();
   }
 
-  if let Some(delta_file_path) = &cli_args.delta_file_path {
-    println!("Overriding simcontrol delta_file_path={} with cli arg value ={}", simcontrol.delta_file_path.display(), delta_file_path.display());
-    simcontrol.delta_file_path = delta_file_path.clone();
-  }
-
   if let Some(cl_kernels_file_path) = &cli_args.cl_kernels_file_path {
     println!("Overriding simcontrol cl_kernels_file_path={} with cli arg value ={}", simcontrol.cl_kernels_file_path.display(), cl_kernels_file_path.display());
     simcontrol.cl_kernels_file_path = cl_kernels_file_path.clone();

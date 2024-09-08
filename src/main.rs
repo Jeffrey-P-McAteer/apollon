@@ -39,9 +39,11 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
 
   let t0_data = utils::read_ld_file(&args.data_file_path).await;
+  let cl_kernels = utils::read_cl_kernel_file(&args.cl_kernels_file_path).await;
   let delta_data = utils::read_ld_file(&args.delta_file_path).await;
 
   println!("t0_data = {:?}", &t0_data);
+  println!("cl_kernels = {:?}", &cl_kernels);
   println!("delta_data = {:?}", &delta_data);
 
 

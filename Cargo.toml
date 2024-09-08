@@ -11,6 +11,7 @@ csv =          { version = "1.3" }
 serde_jsonrc = { version = "0.1" }
 tokio =        { version = "1", features = ["full"] }
 num-format =   { version = "0.4" }
+toml =         { version = "0.8"  }
 
 [dependencies.opencl3]
 version = "0.9"

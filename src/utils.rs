@@ -3,11 +3,15 @@ use std::collections::HashMap;
 
 use crate::structs;
 
+// ld == "Listed Data", it's shape must be Vec<Map<string, object>>
 pub async fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs::Value>> {
   let mut v: Vec<HashMap<String, structs::Value>> = vec![];
 
   if let Ok(file_string_content) = tokio::fs::read_to_string(path).await {
-    if let Ok(mut file_json_content) = serde_jsonrc::from_str(&file_string_content) {
+    if let Ok(mut file_toml_content) = toml::from_str(&file_string_content) {
+      v.append(&mut file_toml_content);
+    }
+    else if let Ok(mut file_json_content) = serde_jsonrc::from_str(&file_string_content) {
       v.append(&mut file_json_content);
     }
     else {
@@ -51,6 +55,22 @@ pub async fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs
       }
 
     }
+  }
+
+  return v;
+}
+
+pub async fn read_cl_kernel_file(path: &std::path::Path) -> structs::CL_Kernels {
+  let mut v: structs::CL_Kernels = structs::CL_Kernels::default();
+
+  if let Ok(file_string_content) = tokio::fs::read_to_string(path).await {
+    if let Ok(mut file_toml_content) = toml::from_str::<structs::CL_Kernels>(&file_string_content) {
+      v.kernel.append(&mut file_toml_content.kernel);
+    }
+    else if let Ok(mut file_json_content) = serde_jsonrc::from_str::<structs::CL_Kernels>(&file_string_content) {
+      v.kernel.append(&mut file_json_content.kernel);
+    }
+    // Not supporting other file formats, that's dumb.
   }
 
   return v;

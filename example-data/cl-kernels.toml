@@ -1,0 +1,21 @@
+
+# This file describes compute kernels which are invoked from the deltas.json ["DeltaFunc"] property.
+# I'm not sure this is the best idea, but when I realized all code would have to be
+# driver-compiled at runtime for the hardware anyway I figured this would be a good way to track them all.
+
+[[kernel]]
+name = "saxpy_float"
+source = '''
+kernel void saxpy_float (
+    global float* z,
+    global float const* x,
+    global float const* y,
+    float a
+)
+{
+    const size_t i = get_global_id(0);
+    z[i] = a*x[i] + y[i];
+}
+'''
+
+

@@ -9,6 +9,10 @@ pub struct Args {
     /// One column in data_file_path and delta_file_path MUST be identical and is used to specify per-entity field delta functions.
     pub delta_file_path: std::path::PathBuf,
 
+    /// A data file (.toml) containing OpenCL kernels to be executed,
+    /// and which is expected to supply the delta_file_path with functions to use.
+    pub cl_kernels_file_path: std::path::PathBuf,
+
     /// Number of simulation steps to run
     #[arg(short, long, default_value_t = 1)]
     pub num_steps: u64,
@@ -100,4 +104,14 @@ impl<'de> serde::Deserialize<'de> for Value {
 
 
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct CL_Kernels {
+  pub kernel: Vec<CL_Kernel>,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct CL_Kernel {
+  pub name: String,
+  pub source: String,
+}
 

@@ -28,6 +28,15 @@ pub struct Args {
     #[arg(short, long)]
     pub preferred_gpu_name: Option<String>,
 
+    /// Which attribute in delta_file_path holds the item's X position?
+    #[arg(short, long)]
+    pub gis_x_attr_name: Option<String>,
+
+    /// Which attribute in delta_file_path holds the item's Y position?
+    #[arg(short, long)]
+    pub gis_y_attr_name: Option<String>,
+
+
 }
 
 
@@ -50,13 +59,24 @@ pub struct SimControl {
     pub cl_kernels_file_path: std::path::PathBuf,
 
     /// Number of simulation steps to run
+    #[serde(default = "serde_default_num_steps")]
     pub num_steps: u64,
 
     /// Preferred GPU name to use. Pass "LIST" to list all GPUs detected on this system.
+    #[serde(default = "serde_empty_string")]
     pub preferred_gpu_name: String,
+
+    #[serde(default = "serde_default_gis_x_attr_name")]
+    pub gis_x_attr_name: String,
+    #[serde(default = "serde_default_gis_y_attr_name")]
+    pub gis_y_attr_name: String,
 
 }
 
+fn serde_empty_string()              -> String { String::new() }
+fn serde_default_num_steps()         -> u64    { 64 }
+fn serde_default_gis_x_attr_name()   -> String { "X".to_string() }
+fn serde_default_gis_y_attr_name()   -> String { "Y".to_string() }
 
 
 

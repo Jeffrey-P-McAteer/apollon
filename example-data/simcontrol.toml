@@ -10,8 +10,10 @@ delta_file_path = "example-data/deltas.json"
 cl_kernels_file_path = "example-data/cl-kernels.toml"
 
 num_steps = 100
-preferred_gpu_name = "nvidia"
+#preferred_gpu_name = "nvidia"
 
+gis_x_attr_name = "X0"
+gis_y_attr_name = "Y0"
 
 
 

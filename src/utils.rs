@@ -82,6 +82,12 @@ pub async fn read_cl_kernel_file(path: &std::path::Path) -> Result<structs::CL_K
 pub async fn read_simcontrol_file(path: &std::path::Path) -> Result<structs::SimControl, Box<dyn std::error::Error>> {
 
   if let Ok(file_string_content) = tokio::fs::read_to_string(path).await {
+
+    if file_string_content.len() < 1 {
+      // Empty files do not error; they just return the default values.
+      return Ok(structs::SimControl::default());
+    }
+
     // First parse the format w/ keys under [simulation]
     if let Ok(file_toml_content) = toml::from_str::<structs::SimControl_file>(&file_string_content) {
       return Ok(file_toml_content.simulation);

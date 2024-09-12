@@ -1,16 +1,48 @@
 
-# This file describes compute kernels which are invoked from the deltas.json ["DeltaFunc"] property.
-# I'm not sure this is the best idea, but when I realized all code would have to be
-# driver-compiled at runtime for the hardware anyway I figured this would be a good way to track them all.
+# This file describes compute kernels which are invoked for each step
+# Every kernel is run for each step, in the order of appearance in this file top-to-bottom.
+# Kernels must declare the name of their OpenCL source code entry function,
+# which MUST be of type `void` and accept len(inputs) input attributes of vector data.
 
 [[kernel]]
-name = "saxpy_float"
+name = "compute_position"
+
+# column_types overrides & extends the type of columns from your simcontrol.toml file.
+# If any columns lack type data associated with them, they cannot be processed.
+[column_types]
+"id" = 'int64'
+"X0" = 'int32'
+"Y0" = 'int32'
+
+# These turn into arg values of type "global <datatype> *" (ie pointers)
+# The type of access (ie, 'r' for read, 'w' for write, and 'rw' for both)
+# is specified by putting the access type before the column name with a ':' char between them.
+# Ordering in this list MUST MATCH ordering in your kernel's `source` function.
+data_columns_processed = [
+  "r:id",
+  "rw:X0",
+  "rw:Y0"
+]
+
+# Constants is a list of keys -> value data.
+#   1st element is Name of the variable; this is only used for diagnostic & reporting reasons
+#   The 2nd element of the value data is a string denoting type
+#   and the 3rd element is a numeric value which will be assigned to that type.
+# Constant variables are NOT pointers, and get passed in as their type in the order specified here.
+# for that reason, order in this list MUST MATCH ordering in your kernel's `source` function.
+data_constants = [
+  ['variable_name', 'float', 5.2 ],
+  ['another_var',   'int64', 999 ],
+]
+
+
 source = '''
-kernel void saxpy_float (
-    global float* z,
-    global float const* x,
-    global float const* y,
-    float a
+kernel void compute_position (
+    global float const* id,
+    global float* x0,
+    global float* y0,
+    float variable_name,
+    int64 another_var
 )
 {
     const size_t i = get_global_id(0);

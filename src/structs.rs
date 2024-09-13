@@ -315,6 +315,49 @@ impl<'de> serde::Deserialize<'de> for RWColumn {
 
 
 
+#[derive(Debug, serde::Serialize)]
+pub struct DataConstantValue {
+  pub name: String,
+  pub v_type: ValueType,
+  pub value: Value,
+}
+
+
+impl<'de> serde::Deserialize<'de> for DataConstantValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        struct ValueVisitor;
+        impl<'de> serde::de::Visitor<'de> for ValueVisitor {
+            type Value = DataConstantValue;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "TODO docs")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+              where
+              A: serde::de::SeqAccess<'de>,
+
+            {
+              if let (Some(name), Some(v_type), Some(value)) = (seq.next_element::<String>()?, seq.next_element::<ValueType>()?, seq.next_element::<Value>()?) {
+                Ok(DataConstantValue {
+                  name: name,
+                  v_type: v_type,
+                  value: value,
+                })
+              }
+              else {
+                panic!("TODO")
+              }
+            }
+
+        }
+
+        deserializer.deserialize_any(ValueVisitor)
+    }
+}
 
 
 
@@ -331,6 +374,8 @@ pub struct CL_Kernel {
   pub column_types: HashMap<String, ValueType>,
 
   pub data_columns_processed: Vec<RWColumn>,
+
+  pub data_constants: Vec<DataConstantValue>,
 
   pub source: String,
 }

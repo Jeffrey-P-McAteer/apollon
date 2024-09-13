@@ -17,9 +17,11 @@ gis_y_attr_name = "Y0"
 
 # column_types sets the type of columns from your input data files (here, data_file_path = "example-data/entities.csv")
 # If any columns lack type data associated with them, they cannot be processed.
-[column_types]
-"id" = 'int64'
-"X0" = 'int32'
-"Y0" = 'int32'
+column_types = { "id" = 'int64', "X0" = 'int32', "Y0" = 'int32' }
+
+
+# TODO would it make sense to expose some kind of data_constants['constant_name'] range
+# definition here? This would expose parametric capabilities to a single simulation.
+
 
 

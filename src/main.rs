@@ -1,6 +1,10 @@
 // Guess who doesn't care right now?
 #![allow(unused_variables)]
 #![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_mut)]
+#![allow(non_camel_case_types)]
+
 
 use clap::Parser;
 
@@ -20,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
 
   rt.block_on(async {
     if let Err(e) = main_async(&args).await {
-      eprintln!("[ main_async ] {:?}", e);
+      eprintln!("[ main_async ] {}", e);
     }
   });
 

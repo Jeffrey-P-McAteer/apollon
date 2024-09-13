@@ -71,7 +71,15 @@ pub async fn read_cl_kernel_file(path: &std::path::Path) -> Result<structs::CL_K
       v.kernel.append(&mut file_json_content.kernel);
     }
     else {
-      return Err(Box::from( format!("Error, kernel file cannot be read b/c it is not TOML or JSON data in the expected format: {}", path.display() ) ));
+      let mut sub_err_strs = String::new();
+      if let Err(toml_e) = toml::from_str::<structs::CL_Kernels>(&file_string_content) {
+        sub_err_strs = format!("{}\n{}", sub_err_strs, toml_e);
+      }
+      if let Err(json_e) = serde_jsonrc::from_str::<structs::CL_Kernels>(&file_string_content)  {
+        sub_err_strs = format!("{}\n{}", sub_err_strs, json_e);
+      }
+
+      return Err(Box::from( format!("Error, kernel file cannot be read b/c it is not TOML or JSON data in the expected format: {}{}", path.display(), &sub_err_strs ) ));
     }
   }
 
@@ -92,7 +100,7 @@ pub async fn read_simcontrol_file(path: &std::path::Path) -> Result<structs::Sim
     if let Ok(file_toml_content) = toml::from_str::<structs::SimControl_file>(&file_string_content) {
       return Ok(file_toml_content.simulation);
     }
-    else if let Ok(mut file_json_content) = serde_jsonrc::from_str::<structs::SimControl_file>(&file_string_content) {
+    else if let Ok(file_json_content) = serde_jsonrc::from_str::<structs::SimControl_file>(&file_string_content) {
       return Ok(file_json_content.simulation);
     }
 
@@ -100,7 +108,7 @@ pub async fn read_simcontrol_file(path: &std::path::Path) -> Result<structs::Sim
     if let Ok(file_toml_content) = toml::from_str::<structs::SimControl>(&file_string_content) {
       return Ok(file_toml_content);
     }
-    else if let Ok(mut file_json_content) = serde_jsonrc::from_str::<structs::SimControl>(&file_string_content) {
+    else if let Ok(file_json_content) = serde_jsonrc::from_str::<structs::SimControl>(&file_string_content) {
       return Ok(file_json_content);
     }
   }

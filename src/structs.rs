@@ -1,4 +1,6 @@
 
+use std::collections::HashMap;
+
 
 #[derive(Debug, clap::Parser)]
 pub struct Args {
@@ -62,16 +64,125 @@ pub struct SimControl {
     #[serde(default = "serde_default_gis_y_attr_name")]
     pub gis_y_attr_name: String,
 
+    #[serde(default = "serde_default_column_types")]
+    pub column_types: HashMap<String, ValueType>,
+
 }
 
 fn serde_empty_string()              -> String { String::new() }
 fn serde_default_num_steps()         -> u64    { 64 }
 fn serde_default_gis_x_attr_name()   -> String { "X".to_string() }
 fn serde_default_gis_y_attr_name()   -> String { "Y".to_string() }
+fn serde_default_column_types()      -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }
 
 
 
-//#[derive(Debug, serde::Serialize, serde::Deserialize)]
+
+
+
+
+
+
+
+
+#[derive(Default, Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum ValueType {
+  Uint8,
+  Uint16,
+  Uint32,
+  Uint64,
+
+  Int8,
+  Int16,
+  Int32,
+  Int64,
+
+  Float32,
+  #[default]
+  Float64,
+}
+
+impl ValueType {
+  pub fn maybe_from_str(str_val: &str) -> Option<ValueType> {
+    let str_val = str_val.to_lowercase();
+    match str_val.as_str() {
+      "uint8"  => Some(ValueType::Uint8),
+      "uint16" => Some(ValueType::Uint16),
+      "uint32" => Some(ValueType::Uint32),
+      "uint64" => Some(ValueType::Uint64),
+
+      "u8"  => Some(ValueType::Uint8),
+      "u16" => Some(ValueType::Uint16),
+      "u32" => Some(ValueType::Uint32),
+      "u64" => Some(ValueType::Uint64),
+
+      "int8"  => Some(ValueType::Int8),
+      "int16" => Some(ValueType::Int16),
+      "int32" => Some(ValueType::Int32),
+      "int64" => Some(ValueType::Int64),
+
+      "i8"  => Some(ValueType::Int8),
+      "i16" => Some(ValueType::Int16),
+      "i32" => Some(ValueType::Int32),
+      "i64" => Some(ValueType::Int64),
+
+      "float"   => Some(ValueType::Float32),
+      "float32" => Some(ValueType::Float32),
+      "f32"     => Some(ValueType::Float32),
+
+      "double"   => Some(ValueType::Float32),
+      "f64"      => Some(ValueType::Float32),
+
+      unk_val => {
+        None
+      },
+    }
+  }
+}
+
+
+impl<'de> serde::Deserialize<'de> for ValueType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        struct ValueTypeVisitor;
+        impl<'de> serde::de::Visitor<'de> for ValueTypeVisitor {
+            type Value = ValueType;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "A String value of u8, u16, u32, u64, i8, i16, i32, i64, f32, f64 or any of their aliases: uint8, uint16, uint32, uint64, int8, int16, int32, int64, float, float32 or double.")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+              E: serde::de::Error,
+            {
+              if let Some(val_type) = ValueType::maybe_from_str(v) {
+                Ok(val_type)
+              }
+              else {
+                Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(v), &self))
+              }
+            }
+        }
+
+        deserializer.deserialize_any(ValueTypeVisitor)
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, serde::Serialize)]
 #[serde(untagged)]
 pub enum Value {

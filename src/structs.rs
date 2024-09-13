@@ -264,6 +264,60 @@ impl<'de> serde::Deserialize<'de> for Value {
 
 
 
+#[derive(Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum RWColumn {
+  Read(String),
+  Write(String),
+  ReadWrite(String),
+}
+
+
+impl RWColumn {
+  pub fn from_str(str_val: &str) -> RWColumn {
+    if str_val.starts_with("r:") {
+      RWColumn::Read( str_val.strip_prefix("r:").unwrap_or(str_val).to_string() )
+    }
+    else if str_val.starts_with("w:") {
+      RWColumn::Write( str_val.strip_prefix("w:").unwrap_or(str_val).to_string() )
+    }
+    else { // Assume "rw:" or similar
+      RWColumn::ReadWrite( str_val.strip_prefix("rw:").unwrap_or(str_val).to_string() )
+    }
+  }
+}
+
+
+impl<'de> serde::Deserialize<'de> for RWColumn {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        struct ValueVisitor;
+        impl<'de> serde::de::Visitor<'de> for ValueVisitor {
+            type Value = RWColumn;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "String beginning with 'r', or 'w', or 'rw' like 'r:<column name>' or 'w:<column name>' or 'rw:<column name>'")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            {
+                Ok( RWColumn::from_str(v) )
+            }
+
+        }
+
+        deserializer.deserialize_any(ValueVisitor)
+    }
+}
+
+
+
+
+
+
+
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct CL_Kernels {
   pub kernel: Vec<CL_Kernel>,
@@ -272,5 +326,14 @@ pub struct CL_Kernels {
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct CL_Kernel {
   pub name: String,
+
+  #[serde(default = "serde_default_column_types")]
+  pub column_types: HashMap<String, ValueType>,
+
+  pub data_columns_processed: Vec<RWColumn>,
+
   pub source: String,
 }
+
+
+

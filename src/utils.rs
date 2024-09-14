@@ -3,8 +3,11 @@ use std::collections::HashMap;
 
 use crate::structs;
 
+/// General-purpose alias used to refer to loosly-typed lists of dictionaries, such as t0 data and intermediate sim steps.
+pub type ListedData = Vec<HashMap<String, structs::Value>>;
+
 // ld == "Listed Data", it's shape must be Vec<Map<string, object>>
-pub async fn read_ld_file(path: &std::path::Path) -> Vec<HashMap<String, structs::Value>> {
+pub async fn read_ld_file(path: &std::path::Path) -> ListedData {
   let mut v: Vec<HashMap<String, structs::Value>> = vec![];
 
   if let Ok(file_string_content) = tokio::fs::read_to_string(path).await {

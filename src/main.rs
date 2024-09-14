@@ -7,6 +7,7 @@
 
 
 use clap::Parser;
+use num_format::{Locale, ToFormattedString};
 
 pub mod structs;
 pub mod utils;
@@ -54,8 +55,12 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   println!("t0_data = {:?}", &t0_data);
   println!("cl_kernels = {:?}", &cl_kernels);
 
+  for sim_step_i in 0..simcontrol.num_steps {
+    // data_to_cl_memory
+  }
 
 
+/*
   use opencl3::command_queue::{CommandQueue, CL_QUEUE_PROFILING_ENABLE};
   use opencl3::context::Context;
   use opencl3::device::{get_all_devices, Device, CL_DEVICE_TYPE_GPU};
@@ -163,6 +168,7 @@ const KERNEL_NAME: &str = "saxpy_float";
   use num_format::{Locale, ToFormattedString};
   println!("kernel execution duration (ns): {}", duration.to_formatted_string(&Locale::en) );
 
+*/
 
   Ok(())
 }

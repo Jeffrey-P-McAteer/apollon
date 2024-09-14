@@ -1,4 +1,6 @@
 
+use crate::utils;
+
 use std::collections::HashMap;
 
 
@@ -378,6 +380,14 @@ pub struct CL_Kernel {
   pub data_constants: Vec<DataConstantValue>,
 
   pub source: String,
+}
+
+
+impl CL_Kernel {
+  /// transforms the loose data into CL buffers using the kernel's metadata.
+  pub fn data_to_cl_memory<T>(self, data: utils::ListedData) -> Vec<opencl3::memory::Buffer<T>> {
+    vec![]
+  }
 }
 
 

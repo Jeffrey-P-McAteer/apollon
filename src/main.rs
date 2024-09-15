@@ -4,6 +4,7 @@
 #![allow(unused_imports)]
 #![allow(unused_mut)]
 #![allow(non_camel_case_types)]
+#![allow(unreachable_code)]
 
 
 use clap::Parser;
@@ -50,10 +51,18 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
 
   let t0_data = utils::read_ld_file(&simcontrol.data_file_path).await;
-  let cl_kernels = utils::read_cl_kernel_file(&simcontrol.cl_kernels_file_path).await?;
+  let mut cl_kernels = utils::read_cl_kernel_file(&simcontrol.cl_kernels_file_path).await?.kernel;
 
   println!("t0_data = {:?}", &t0_data);
   println!("cl_kernels = {:?}", &cl_kernels);
+
+  let context = opencl3::context::Context::from_device(&device)?;
+
+  // Compile cl_kernel source code to programs
+  for i in 0..cl_kernels.len() {
+    cl_kernels[i].load_program(&context)?;
+  }
+
 
   for sim_step_i in 0..simcontrol.num_steps {
     // data_to_cl_memory

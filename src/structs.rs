@@ -375,17 +375,40 @@ pub struct CL_Kernel {
   #[serde(default = "serde_default_column_types")]
   pub column_types: HashMap<String, ValueType>,
 
+  #[serde(default = "serde_default_data_columns_processed")]
   pub data_columns_processed: Vec<RWColumn>,
 
+  #[serde(default = "serde_default_data_constants")]
   pub data_constants: Vec<DataConstantValue>,
 
   pub source: String,
+
+  /// This should be a single string containing flags listed in https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_API.html#compiler-options
+  #[serde(default = "serde_empty_string")]
+  pub cl_program_compiler_options: String,
+
+  #[serde(skip_serializing, skip_deserializing)]
+  pub cl_device_program: Option<opencl3::program::Program>,
 }
+
+fn serde_default_data_columns_processed() -> Vec<RWColumn> { vec![] }
+fn serde_default_data_constants() -> Vec<DataConstantValue> { vec![] }
 
 
 impl CL_Kernel {
+  pub fn load_program(&mut self, cl_ctx: &opencl3::context::Context) -> Result<(), Box<dyn std::error::Error>>  {
+    self.cl_device_program = Some(
+      opencl3::program::Program::create_and_build_from_source(
+        &cl_ctx,
+        &self.source,
+        &self.cl_program_compiler_options
+      )?
+    );
+    Ok(())
+  }
+
   /// transforms the loose data into CL buffers using the kernel's metadata.
-  pub fn data_to_cl_memory<T>(self, data: utils::ListedData) -> Vec<opencl3::memory::Buffer<T>> {
+  pub fn data_to_cl_memory<T>(&self, data: utils::ListedData) -> Vec<opencl3::memory::Buffer<T>> {
     vec![]
   }
 }

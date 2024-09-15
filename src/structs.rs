@@ -389,6 +389,10 @@ pub struct CL_Kernel {
 
   #[serde(skip_serializing, skip_deserializing)]
   pub cl_device_program: Option<opencl3::program::Program>,
+
+  #[serde(skip_serializing, skip_deserializing)]
+  pub cl_device_kernel: Option<opencl3::kernel::Kernel>,
+
 }
 
 fn serde_default_data_columns_processed() -> Vec<RWColumn> { vec![] }
@@ -396,6 +400,7 @@ fn serde_default_data_constants() -> Vec<DataConstantValue> { vec![] }
 
 
 impl CL_Kernel {
+
   pub fn load_program(&mut self, cl_ctx: &opencl3::context::Context) -> Result<(), Box<dyn std::error::Error>>  {
     self.cl_device_program = Some(
       opencl3::program::Program::create_and_build_from_source(
@@ -404,6 +409,11 @@ impl CL_Kernel {
         &self.cl_program_compiler_options
       )?
     );
+    if let Some(ref cl_device_program_ref) = self.cl_device_program {
+      self.cl_device_kernel = Some(
+        opencl3::kernel::Kernel::create(cl_device_program_ref, &self.name)?
+      );
+    }
     Ok(())
   }
 

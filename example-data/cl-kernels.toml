@@ -5,6 +5,7 @@
 # which MUST be of type `void` and accept len(inputs) input attributes of vector data.
 
 [[kernel]]
+# The kernel `name` MUST match a kernel defined in the `source` field.
 name = "compute_position"
 
 # column_types overrides & extends the type of columns from your simcontrol.toml file.

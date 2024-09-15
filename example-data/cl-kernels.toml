@@ -41,7 +41,7 @@ kernel void compute_position (
     global float* x0,
     global float* y0,
     float variable_name,
-    int8 another_var
+    long another_var
 )
 {
     const size_t i = get_global_id(0);

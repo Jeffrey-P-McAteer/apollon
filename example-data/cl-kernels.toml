@@ -8,20 +8,12 @@
 # The kernel `name` MUST match a kernel defined in the `source` field.
 name = "compute_position"
 
-# column_types overrides & extends the type of columns from your simcontrol.toml file.
-# If any columns lack type data associated with them, they cannot be processed.
-column_types = { "id" = 'int64', "X0" = 'int32', "Y0" = 'int32' }
-
-
-# These turn into arg values of type "global <datatype> *" (ie pointers)
-# The type of access (ie, 'r' for read, 'w' for write, and 'rw' for both)
-# is specified by putting the access type before the column name with a ':' char between them.
-# Ordering in this list MUST MATCH ordering in your kernel's `source` function.
-data_columns_processed = [
-  "r:id",
-  "rw:X0",
-  "rw:Y0"
-]
+# [colmap] is a dictionary with keys containing
+# source arg names and values containing Data column names.
+# we get type data by querying parsed source directly and convert from the original to the processing target types.
+colmap.id = 'ID'
+colmap.x0 = 'X0'
+colmap.y0 = 'Y0'
 
 # Constants is a list of keys -> value data.
 #   1st element is Name of the variable; this is only used for diagnostic & reporting reasons

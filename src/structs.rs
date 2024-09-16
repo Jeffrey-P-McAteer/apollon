@@ -66,8 +66,8 @@ pub struct SimControl {
     #[serde(default = "serde_default_gis_y_attr_name")]
     pub gis_y_attr_name: String,
 
-    #[serde(default = "serde_default_column_types")]
-    pub column_types: HashMap<String, ValueType>,
+    //#[serde(default = "serde_default_column_types")]
+    //pub column_types: HashMap<String, ValueType>,
 
 }
 
@@ -372,11 +372,16 @@ pub struct CL_Kernels {
 pub struct CL_Kernel {
   pub name: String,
 
+  /*
   #[serde(default = "serde_default_column_types")]
   pub column_types: HashMap<String, ValueType>,
 
   #[serde(default = "serde_default_data_columns_processed")]
   pub data_columns_processed: Vec<RWColumn>,
+  */
+
+  #[serde(default = "serde_default_colmap")]
+  pub colmap: HashMap<String, String>,
 
   #[serde(default = "serde_default_data_constants")]
   pub data_constants: Vec<DataConstantValue>,
@@ -395,7 +400,8 @@ pub struct CL_Kernel {
 
 }
 
-fn serde_default_data_columns_processed() -> Vec<RWColumn> { vec![] }
+fn serde_default_colmap() -> HashMap<String, String> { HashMap::<String, String>::new() }
+//fn serde_default_data_columns_processed() -> Vec<RWColumn> { vec![] }
 fn serde_default_data_constants() -> Vec<DataConstantValue> { vec![] }
 
 
@@ -413,6 +419,10 @@ impl CL_Kernel {
       self.cl_device_kernel = Some(
         opencl3::kernel::Kernel::create(cl_device_program_ref, &self.name)?
       );
+    }
+    if let Some(ref cl_device_kernel_ref) = self.cl_device_kernel {
+      // Read kernel argument type data & convert to intermediate formats
+
     }
     Ok(())
   }

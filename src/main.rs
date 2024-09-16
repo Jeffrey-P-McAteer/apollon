@@ -63,6 +63,23 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     cl_kernels[i].load_program(&context)?;
   }
 
+  // We now transform t0 data into the desired column space for each kernel
+  for i in 0..cl_kernels.len() {
+    if let Some(k) = &cl_kernels[i].cl_device_kernel {
+      println!("function_name = {:#?}", k.function_name() );
+      println!("num_args = {:?}", k.num_args() );
+      if let Ok(argc) = k.num_args() {
+        for arg_i in 0..argc {
+          println!("args[{}] = {:?}, {:?}, {:?}, {:?}, {:?}", arg_i,
+            k.get_arg_address_qualifier(arg_i), k.get_arg_access_qualifier(arg_i), k.get_arg_type_qualifier(arg_i),
+            k.get_arg_type_name(arg_i), k.get_arg_name(arg_i)
+          );
+        }
+      }
+    }
+  }
+
+
 
   for sim_step_i in 0..simcontrol.num_steps {
     // data_to_cl_memory

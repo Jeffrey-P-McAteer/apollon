@@ -417,7 +417,8 @@ impl CL_Kernel {
     Ok(())
   }
 
-  /// transforms the loose data into CL buffers using the kernel's metadata.
+  /// transforms the loose data into CL buffers using the kernel's metadata. Order in the Vec<> corresponds to
+  /// the order of data_columns_processed.
   pub fn data_to_cl_memory<T>(&self, data: utils::ListedData) -> Vec<opencl3::memory::Buffer<T>> {
     vec![]
   }

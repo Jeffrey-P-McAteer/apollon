@@ -405,11 +405,18 @@ pub struct CL_Kernel {
   #[serde(skip_serializing, skip_deserializing)]
   pub cl_device_kernel: Option<opencl3::kernel::Kernel>,
 
+  #[serde(skip_serializing, skip_deserializing, default = "serde_empty_map_str_valtype")]
+  pub cl_arg_types: HashMap<String, ValueType>,
+
+
 }
+
 
 fn serde_default_colmap() -> HashMap<String, String> { HashMap::<String, String>::new() }
 //fn serde_default_data_columns_processed() -> Vec<RWColumn> { vec![] }
 fn serde_default_data_constants() -> Vec<DataConstantValue> { vec![] }
+fn serde_empty_map_str_valtype() -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }
+
 
 
 impl CL_Kernel {
@@ -431,6 +438,7 @@ impl CL_Kernel {
       // Read kernel argument type data & convert to intermediate formats
 
     }
+
     Ok(())
   }
 

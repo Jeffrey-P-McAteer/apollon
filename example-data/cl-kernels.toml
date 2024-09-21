@@ -26,6 +26,10 @@ data_constants = [
   ['another_var',   'int64', 999 ],
 ]
 
+# This string is passed verbatim to the compiler backend.
+# Most users will not need these, only those chasing extreme performance will care.
+# Option effects are documented at https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_API.html#compiler-options
+cl_program_compiler_options = ""
 
 source = '''
 kernel void compute_position (

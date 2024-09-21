@@ -100,10 +100,12 @@ pub async fn read_simcontrol_file(path: &std::path::Path) -> Result<structs::Sim
     }
 
     // First parse the format w/ keys under [simulation]
-    if let Ok(file_toml_content) = toml::from_str::<structs::SimControl_file>(&file_string_content) {
+    if let Ok(mut file_toml_content) = toml::from_str::<structs::SimControl_file>(&file_string_content) {
+      file_toml_content.simulation.data_constants.extend(file_toml_content.data_constants);
       return Ok(file_toml_content.simulation);
     }
-    else if let Ok(file_json_content) = serde_jsonrc::from_str::<structs::SimControl_file>(&file_string_content) {
+    else if let Ok(mut file_json_content) = serde_jsonrc::from_str::<structs::SimControl_file>(&file_string_content) {
+      file_json_content.simulation.data_constants.extend(file_json_content.data_constants);
       return Ok(file_json_content.simulation);
     }
 

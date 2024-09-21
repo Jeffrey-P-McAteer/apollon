@@ -9,7 +9,6 @@ pub struct Args {
     /// A data file (.toml, .json, etc.) containing simulation configuration data.
     pub simcontrol_file_path: std::path::PathBuf,
 
-
     /// A data file (.csv, .json, etc.) containing T=0 data for the simulation.
     #[arg(short, long)]
     pub data_file_path: Option<std::path::PathBuf>,
@@ -35,6 +34,10 @@ pub struct Args {
     #[arg(short, long)]
     pub gis_y_attr_name: Option<String>,
 
+    /// Amount of verbosity in printed status messages; can be specified multiple times (ie "-v", "-vv", "-vvv" for greater verbosity)
+    #[arg(short = 'v', long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
+
 
 }
 
@@ -42,6 +45,7 @@ pub struct Args {
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct SimControl_file { // utility to allow us to specify name of value
   pub simulation: SimControl,
+  pub data_constants: HashMap<String, Value>,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -66,6 +70,10 @@ pub struct SimControl {
     #[serde(default = "serde_default_gis_y_attr_name")]
     pub gis_y_attr_name: String,
 
+    // If not specified under [simulation], these are copied in from SimControl_file
+    #[serde(default = "serde_default_value_map")]
+    pub data_constants: HashMap<String, Value>,
+
     //#[serde(default = "serde_default_column_types")]
     //pub column_types: HashMap<String, ValueType>,
 
@@ -76,8 +84,7 @@ fn serde_default_num_steps()         -> u64    { 64 }
 fn serde_default_gis_x_attr_name()   -> String { "X".to_string() }
 fn serde_default_gis_y_attr_name()   -> String { "Y".to_string() }
 fn serde_default_column_types()      -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }
-
-
+fn serde_default_value_map()         -> HashMap<String, Value> { HashMap::<String, Value>::new() }
 
 
 

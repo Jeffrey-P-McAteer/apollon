@@ -44,7 +44,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let simcontrol = simcontrol;
 
   if args.verbose >= 2 {
-    println!("simcontrol = {:?}", simcontrol);
+    println!("simcontrol = {:#?}", simcontrol);
   }
 
 
@@ -60,8 +60,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let mut cl_kernels = utils::read_cl_kernel_file(&simcontrol.cl_kernels_file_path).await?.kernel;
 
   if args.verbose >= 2 {
-    println!("t0_data = {:?}", &t0_data);
-    println!("cl_kernels = {:?}", &cl_kernels);
+    println!("t0_data = {:#?}", &t0_data);
+    println!("cl_kernels = {:#?}", &cl_kernels);
   }
 
   let context = opencl3::context::Context::from_device(&device)?;

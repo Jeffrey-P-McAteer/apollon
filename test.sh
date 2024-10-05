@@ -14,6 +14,6 @@ for gpu_name in "${detected_gpus[@]}" ; do
 done
 
 for gpu_name in "${detected_gpus[@]}" ; do
-  echo "Testing simulation on GPU '$gpu_name'"
+  echo "===== Testing simulation on GPU '$gpu_name' ====="
   ./target/release/dsim example-data/simcontrol.toml -n 128 -p "$gpu_name" "$@"
 done

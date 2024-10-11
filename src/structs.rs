@@ -390,6 +390,10 @@ pub struct CL_Kernel {
   #[serde(default = "serde_default_colmap")]
   pub colmap: HashMap<String, String>,
 
+  /// Contains the same keys as colmap; is expected to be constructed at run-time by parsing colmap and the kernel source code.
+  #[serde(default = "serde_default_typemap")]
+  pub typemap: HashMap<String, ValueType>,
+
   #[serde(default = "serde_default_data_constants")]
   pub data_constants: Vec<DataConstantValue>,
 
@@ -413,6 +417,8 @@ pub struct CL_Kernel {
 
 
 fn serde_default_colmap() -> HashMap<String, String> { HashMap::<String, String>::new() }
+fn serde_default_typemap() -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }
+
 //fn serde_default_data_columns_processed() -> Vec<RWColumn> { vec![] }
 fn serde_default_data_constants() -> Vec<DataConstantValue> { vec![] }
 fn serde_empty_map_str_valtype() -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }

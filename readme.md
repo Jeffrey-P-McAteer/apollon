@@ -12,6 +12,7 @@ cargo run --release -- example-data/entities.csv example-data/deltas.json -n 128
 
 cargo build --release && ( ./target/release/dsim example-data/entities.csv example-data/deltas.json -n 128 -p nvidia ; ./target/release/dsim example-data/entities.csv example-data/deltas.json -n 128 -p intel )
 
-
+# Linux platforms only
+./test.sh
 
 ```

@@ -440,10 +440,13 @@ impl CL_Kernel {
         opencl3::kernel::Kernel::create(cl_device_program_ref, &self.name)?
       );
     }
+
+    /*
     if let Some(ref cl_device_kernel_ref) = self.cl_device_kernel {
       // Read kernel argument type data & convert to intermediate formats
 
     }
+    */
 
     Ok(())
   }

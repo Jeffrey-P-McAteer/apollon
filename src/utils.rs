@@ -216,4 +216,19 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
 }
 
 
+pub fn ld_data_to_kernel_data(ld_data: &ListedData, cl_kernel: &structs::CL_Kernel, k: &opencl3::kernel::Kernel)  {
+  println!("function_name = {:#?}", k.function_name() );
+  println!("num_args = {:?}", k.num_args() );
+  if let Ok(argc) = k.num_args() {
+    for arg_i in 0..argc {
+      println!("args[{}] = {:?}, {:?}, {:?}, {:?}, {:?}", arg_i,
+        k.get_arg_address_qualifier(arg_i), k.get_arg_access_qualifier(arg_i), k.get_arg_type_qualifier(arg_i),
+        k.get_arg_type_name(arg_i), k.get_arg_name(arg_i)
+      );
+    }
+  }
+
+
+}
+
 

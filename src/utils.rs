@@ -466,7 +466,9 @@ fn write_values_to_cl_buffer<T>(
 
     // If we are at the end of the buffer OR at the last value, make blocking write into cl_buff
     if stack_arr_write_offset >= STACK_BUFF_SIZE-1 || i == values.len()-1 {
-      let write_event = unsafe { queue.enqueue_write_buffer(&mut cl_buff, opencl3::types::CL_BLOCKING, 0, &stack_arr, &[])? };
+      let num_items_to_write = if cl_buff_write_offset+STACK_BUFF_SIZE > array_size { array_size - cl_buff_write_offset } else { STACK_BUFF_SIZE };
+      let write_event = unsafe { queue.enqueue_write_buffer(&mut cl_buff, opencl3::types::CL_BLOCKING, cl_buff_write_offset, &stack_arr[0..num_items_to_write], &[])? };
+      cl_buff_write_offset += STACK_BUFF_SIZE;
     }
   }
 
@@ -480,6 +482,7 @@ pub fn kernel_data_update_ld_data(
   queue: &opencl3::command_queue::CommandQueue,
   events: &Vec<opencl3::types::cl_event>,
   kernel_data: &Vec<structs::CL_TaggedArgument>,
+  kernel_arg_names: &Vec<String>,
   ld_data: &mut ListedData
 )
   -> Result<(), Box<dyn std::error::Error>>
@@ -487,12 +490,13 @@ pub fn kernel_data_update_ld_data(
   use opencl3::memory::ClMem;
 
   for i in 0..kernel_data.len() {
+    let arg_name = &kernel_arg_names[i];
     match &kernel_data[i] {
       structs::CL_TaggedArgument::Uint8Buffer(cl_uchar_buff) => {
         if (cl_uchar_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_uchar_buff, ld_data,
+            context, queue, events, cl_uchar_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_uchar,
             |a_uchar| structs::Value::Integer(a_uchar as i64)
           )?;
@@ -502,7 +506,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_ushort_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_ushort_buff, ld_data,
+            context, queue, events, cl_ushort_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_ushort,
             |a_ushort| structs::Value::Integer(a_ushort as i64)
           )?;
@@ -512,7 +516,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_uint_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_uint_buff, ld_data,
+            context, queue, events, cl_uint_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_uint,
             |a_uint| structs::Value::Integer(a_uint as i64)
           )?;
@@ -522,7 +526,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_ulong_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_ulong_buff, ld_data,
+            context, queue, events, cl_ulong_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_ulong,
             |a_ulong| structs::Value::Integer(a_ulong.try_into().expect("Failed to convert a u64 to a i64!"))
           )?;
@@ -533,7 +537,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_char_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_char_buff, ld_data,
+            context, queue, events, cl_char_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_char,
             |a_char| structs::Value::Integer(a_char as i64)
           )?;
@@ -543,7 +547,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_short_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_short_buff, ld_data,
+            context, queue, events, cl_short_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_short,
             |a_short| structs::Value::Integer(a_short as i64)
           )?;
@@ -553,7 +557,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_int_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_int_buff, ld_data,
+            context, queue, events, cl_int_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_int,
             |a_int| structs::Value::Integer(a_int as i64)
           )?;
@@ -563,7 +567,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_long_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_long_buff, ld_data,
+            context, queue, events, cl_long_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_long,
             |a_long| structs::Value::Integer(a_long as i64)
           )?;
@@ -575,7 +579,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_float_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_float_buff, ld_data,
+            context, queue, events, cl_float_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_float,
             |a_float| structs::Value::Double(a_float as f64)
           )?;
@@ -585,7 +589,7 @@ pub fn kernel_data_update_ld_data(
         if (cl_double_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
-            context, queue, events, cl_double_buff, ld_data,
+            context, queue, events, cl_double_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_double,
             |a_double| structs::Value::Double(a_double as f64)
           )?;
@@ -620,8 +624,9 @@ fn read_values_from_cl_buffer<T>(
   context: &opencl3::context::Context,
   queue: &opencl3::command_queue::CommandQueue,
   events: &Vec<opencl3::types::cl_event>,
-  values: &opencl3::memory::Buffer<T>,
+  cl_values: &opencl3::memory::Buffer<T>,
   ld_data: &mut ListedData,
+  ld_field_name: &str,
   i64_to_t: impl Fn(i64) -> T,
   t_to_val: impl Fn(T) -> structs::Value,
 )
@@ -633,16 +638,31 @@ fn read_values_from_cl_buffer<T>(
   const STACK_BUFF_SIZE: usize = 8 * 1024;
 
   // Allocate buffer of size
-  let array_size = values.size()?;
+  let array_size = cl_values.size()? / std::mem::size_of::<T>();
 
-  let mut cl_buff_write_offset = 0;
+  let mut ld_data_write_offset = 0;
+  let mut cl_buff_read_offset = 0;
 
-  // We write into this over and over again, keeping track of use and making blocking calls to write into cl_buff
+  // We read into this over and over again, keeping track of use and making blocking calls to read from cl_values
   let mut stack_arr: [T; STACK_BUFF_SIZE] = [i64_to_t(0); STACK_BUFF_SIZE];
   let mut stack_arr_write_offset = 0;
 
-  for i in 0..array_size {
 
+  for i in (0..array_size).step_by(STACK_BUFF_SIZE) {
+    // Read the next STACK_BUFF_SIZE items up to a max of aray_size
+    let unused_read_event = unsafe { queue.enqueue_read_buffer(cl_values, opencl3::types::CL_BLOCKING, cl_buff_read_offset, &mut stack_arr, &events)? };
+    cl_buff_read_offset += STACK_BUFF_SIZE;
+    let num_items_read = if cl_buff_read_offset > array_size { array_size - (cl_buff_read_offset-STACK_BUFF_SIZE) } else { STACK_BUFF_SIZE };
+
+    for j in 0..num_items_read {
+      if ld_data[ld_data_write_offset].contains_key(ld_field_name) {
+        *ld_data[ld_data_write_offset].get_mut(ld_field_name).expect("Safety: we checked contains_key upstairs") = t_to_val(stack_arr[j])
+      }
+      else {
+        ld_data[ld_data_write_offset].insert(ld_field_name.to_string(), t_to_val(stack_arr[j]) );
+      }
+      ld_data_write_offset += 1;
+    }
   }
 
   Ok(())

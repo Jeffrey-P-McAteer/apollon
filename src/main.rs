@@ -81,13 +81,16 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
     for i in 0..cl_kernels.len() {
       if let Some(k) = &cl_kernels[i].cl_device_kernel {
-        let kernel_args = utils::ld_data_to_kernel_data(&simcontrol, &sim_data, &cl_kernels[i], &k);
 
         println!("sim_step_i={} i={}", sim_step_i, i);
 
         // Create a command_queue on the Context's device; 8 is a random guess at a good size
         let queue = opencl3::command_queue::CommandQueue::create_default_with_properties(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE, 0).expect("CommandQueue::create_default failed");
         //let queue = opencl3::command_queue::CommandQueue::create_default(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE).expect("CommandQueue::create_default failed");
+
+        // Move data from Sim space to Kernel space; this queues blocking data writes to buffers, which are then placed into the kernel as arguments
+        let mut events: Vec<opencl3::types::cl_event> = Vec::default();
+        let kernel_args = utils::ld_data_to_kernel_data(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &events)?;
 
         // Allocate a runtime kernel & feed it inputs; we use RefCell here b/c otherwise inner-loop lifetimes would kill us
         let mut exec_kernel = opencl3::kernel::ExecuteKernel::new(&k);
@@ -126,7 +129,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         // Setup command queue
         let mut kernel_event = unsafe { exec_kernel.enqueue_nd_range(&queue)? };
 
-        let mut events: Vec<opencl3::types::cl_event> = Vec::default();
         events.push(kernel_event.get());
 
         // Kernel is now running, we wait for all write events in-order
@@ -135,7 +137,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
 
 
-        utils::kernel_data_update_ld_data(&kernel_args, &mut sim_data);
+        utils::kernel_data_update_ld_data(&kernel_args, &mut sim_data)?;
       }
       else {
         eprintln!("[ Fatal Error ] Kernel {} does not have a cl_device_kernel! Inspect hardware & s/w to ensure kernels compile when loaded.", cl_kernels[i].name);

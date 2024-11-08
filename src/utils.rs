@@ -216,7 +216,17 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
 }
 
 
-pub fn ld_data_to_kernel_data(sc: &structs::SimControl, ld_data: &ListedData, cl_kernel: &structs::CL_Kernel, k: &opencl3::kernel::Kernel) -> Vec<structs::CL_TaggedArgument> {
+pub fn ld_data_to_kernel_data(
+    args: &structs::Args,
+    sc: &structs::SimControl,
+    ld_data: &ListedData,
+    context: &opencl3::context::Context,
+    cl_kernel: &structs::CL_Kernel,
+    k: &opencl3::kernel::Kernel,
+    queue: &opencl3::command_queue::CommandQueue,
+    events: &Vec<opencl3::types::cl_event>
+  ) -> Result<Vec<structs::CL_TaggedArgument>, Box<dyn std::error::Error>>
+{
   let mut kernel_data = vec![];
 
   let work_size = ld_data.len();
@@ -238,24 +248,142 @@ pub fn ld_data_to_kernel_data(sc: &structs::SimControl, ld_data: &ListedData, cl
 
       if is_pointer {
 
-        // Lookup data in ld_data w/ fuzzy string matching from all records.
-        std::unimplemented!();
+        // Lookup data in ld_data w/ fuzzy string matching from all records;
+        // We must allocate a [T] because of the signature required by enqueue_write_buffer.
+        // Because our goal is to hold massive quantities of data, we limit the buffer to some moderate stack-sized value and loop over it w/ blocking CL writes.
+
+        let mut ld_values: Vec<structs::Value> = vec![];
 
         for record in ld_data.iter() {
           if let Some(val) = record.get(&variable_name) {
-
+            ld_values.push(val.clone());
           }
           else if let Some(val) = record.get(&variable_name_lowercase) {
-
+            ld_values.push(val.clone());
           }
           else if let Some(val) = record.get(&variable_name_uppercase) {
-
+            ld_values.push(val.clone());
           }
           else {
-
+            if args.verbose > 0 {
+              println!("[ Warning ] Missing value for simulation data column {}, 0.0 will be used for this record.", variable_name);
+            }
+            ld_values.push(structs::Value::Integer(0)); // Default value regardless of type is 0, b/c we allow ld_values to contain different types & unify later
           }
         }
 
+        let buffer_rw = if is_constant { structs::RWColumn::Read(String::new()) } else { structs::RWColumn::Write(String::new()) };
+
+        // Now we match on the CL target type & call into the generic write_values_to_cl_buffer helper routine.
+        match type_name {
+          "uchar" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Uint8Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_uchar>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_uchar,
+                |double_val| double_val as opencl3::types::cl_uchar,
+              )?)
+            );
+          }
+          "ushort" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Uint16Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_ushort>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_ushort,
+                |double_val| double_val as opencl3::types::cl_ushort,
+              )?)
+            );
+          }
+          "uint" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Uint32Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_uint>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_uint,
+                |double_val| double_val as opencl3::types::cl_uint,
+              )?)
+            );
+          }
+          "ulong" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Uint64Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_ulong>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_ulong,
+                |double_val| double_val as opencl3::types::cl_ulong,
+              )?)
+            );
+          }
+
+          "char" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Int8Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_char>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_char,
+                |double_val| double_val as opencl3::types::cl_char,
+              )?)
+            );
+          }
+          "short" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Int16Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_short>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_short,
+                |double_val| double_val as opencl3::types::cl_short,
+              )?)
+            );
+          }
+          "int" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Int32Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_int>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_int,
+                |double_val| double_val as opencl3::types::cl_int,
+              )?)
+            );
+          }
+          "long" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::Int64Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_long>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_long,
+                |double_val| double_val as opencl3::types::cl_long,
+              )?)
+            );
+          }
+
+          "float" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::FloatBuffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_float>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_float,
+                |double_val| double_val as opencl3::types::cl_float,
+              )?)
+            );
+          }
+          "double" => {
+            kernel_data.push(
+              structs::CL_TaggedArgument::DoubleBuffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_double>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_double,
+                |double_val| double_val as opencl3::types::cl_double,
+              )?)
+            );
+          }
+
+          unk => {
+            println!("Unknown CL Buffer type: {}", unk);
+            panic!("Unknown CL Buffer type!");
+          }
+        }
 
       }
       else {
@@ -289,11 +417,72 @@ pub fn ld_data_to_kernel_data(sc: &structs::SimControl, ld_data: &ListedData, cl
     }
   }
 
-  return kernel_data;
+  Ok(kernel_data)
 }
 
-pub fn kernel_data_update_ld_data(kernel_data: &Vec<structs::CL_TaggedArgument>, ld_data: &ListedData) {
+fn write_values_to_cl_buffer<T>(
+  context: &opencl3::context::Context,
+  queue: &opencl3::command_queue::CommandQueue,
+  values: &Vec<structs::Value>,
+  buffer_rw: structs::RWColumn,
+  i64_to_t: impl Fn(i64) -> T,
+  f64_to_t: impl Fn(f64) -> T,
+)
+  -> Result<opencl3::memory::Buffer::<T>, Box<dyn std::error::Error>>
+  where T: Copy
+{
+  const STACK_BUFF_SIZE: usize = 8 * 1024;
+
+  // Allocate buffer of size
+  let array_size = values.len();
+  let cl_memory_flags = match buffer_rw {
+    structs::RWColumn::Read(_)      => opencl3::memory::CL_MEM_READ_ONLY,
+    structs::RWColumn::Write(_)     => opencl3::memory::CL_MEM_READ_WRITE,
+    structs::RWColumn::ReadWrite(_) => opencl3::memory::CL_MEM_READ_WRITE
+  };
+
+  let mut cl_buff = unsafe {
+      opencl3::memory::Buffer::<T>::create(&context, cl_memory_flags, array_size, std::ptr::null_mut())?
+  };
+  let mut cl_buff_write_offset = 0;
+
+  // We write into this over and over again, keeping track of use and making blocking calls to write into cl_buff
+  let mut stack_arr: [T; STACK_BUFF_SIZE] = [i64_to_t(0); STACK_BUFF_SIZE];
+  let mut stack_arr_write_offset = 0;
+
+  for i in 0..values.len() {
+
+    match values[i] {
+        structs::Value::Integer(i) => {
+          stack_arr[stack_arr_write_offset] = i64_to_t(i);
+        }
+        structs::Value::Double(d) => {
+          stack_arr[stack_arr_write_offset] = f64_to_t(d);
+        }
+        structs::Value::String(_) => panic!("Cannot place string value into a CL kernel argument buffer!"),
+    }
+
+    stack_arr_write_offset += 1;
+
+    // If we are at the end of the buffer OR at the last value, make blocking write into cl_buff
+    if stack_arr_write_offset >= STACK_BUFF_SIZE-1 || i == values.len()-1 {
+      let write_event = unsafe { queue.enqueue_write_buffer(&mut cl_buff, opencl3::types::CL_BLOCKING, 0, &stack_arr, &[])? };
+    }
+  }
+
+
+
+
+  Ok(cl_buff)
+}
+
+
+
+pub fn kernel_data_update_ld_data(kernel_data: &Vec<structs::CL_TaggedArgument>, ld_data: &ListedData)
+  -> Result<(), Box<dyn std::error::Error>>
+{
   println!("TODO implement kernel_data_update_ld_data");
 
+  Ok(())
 }
 

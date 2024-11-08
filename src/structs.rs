@@ -38,7 +38,6 @@ pub struct Args {
     #[arg(short = 'v', long, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-
 }
 
 
@@ -572,3 +571,4 @@ impl CL_TaggedArgument {
 
 
 }
+

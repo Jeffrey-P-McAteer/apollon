@@ -94,7 +94,7 @@ fn serde_default_value_map()         -> HashMap<String, Value> { HashMap::<Strin
 
 
 
-#[derive(Default, Debug, serde::Serialize)]
+#[derive(Default, Debug, Clone, serde::Serialize)]
 #[serde(untagged)]
 pub enum ValueType {
   Uint8,
@@ -192,7 +192,7 @@ impl<'de> serde::Deserialize<'de> for ValueType {
 
 
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 #[serde(untagged)]
 pub enum Value {
   Integer(i64),
@@ -273,7 +273,7 @@ impl<'de> serde::Deserialize<'de> for Value {
 
 
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 #[serde(untagged)]
 pub enum RWColumn {
   Read(String),
@@ -324,7 +324,7 @@ impl<'de> serde::Deserialize<'de> for RWColumn {
 
 
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct DataConstantValue {
   pub name: String,
   pub v_type: ValueType,
@@ -460,3 +460,115 @@ impl CL_Kernel {
 
 
 
+#[derive(Debug)]
+pub enum CL_TaggedArgument {
+  // These all correspond to PRIMITIVE* types
+  Uint8Buffer  (opencl3::memory::Buffer<opencl3::types::cl_uchar>),
+  Uint16Buffer (opencl3::memory::Buffer<opencl3::types::cl_ushort>),
+  Uint32Buffer (opencl3::memory::Buffer<opencl3::types::cl_uint>),
+  Uint64Buffer (opencl3::memory::Buffer<opencl3::types::cl_ulong>),
+
+  Int8Buffer   (opencl3::memory::Buffer<opencl3::types::cl_char>),
+  Int16Buffer  (opencl3::memory::Buffer<opencl3::types::cl_short>),
+  Int32Buffer  (opencl3::memory::Buffer<opencl3::types::cl_int>),
+  Int64Buffer  (opencl3::memory::Buffer<opencl3::types::cl_long>),
+
+  FloatBuffer  (opencl3::memory::Buffer<opencl3::types::cl_float>),
+  DoubleBuffer (opencl3::memory::Buffer<opencl3::types::cl_double>),
+
+  // These all correspond to constant arguments
+  Uint8  (opencl3::types::cl_uchar),
+  Uint16 (opencl3::types::cl_ushort),
+  Uint32 (opencl3::types::cl_uint),
+  Uint64 (opencl3::types::cl_ulong),
+
+  Int8   (opencl3::types::cl_char),
+  Int16  (opencl3::types::cl_short),
+  Int32  (opencl3::types::cl_int),
+  Int64  (opencl3::types::cl_long),
+
+  Float  (opencl3::types::cl_float),
+  Double (opencl3::types::cl_double),
+}
+
+impl CL_TaggedArgument {
+  pub fn from_value(v: &Value, cl_type_name_hint: &str) -> CL_TaggedArgument {
+    match v {
+      Value::Integer(int64_val) => {
+        if cl_type_name_hint == "float" {
+          CL_TaggedArgument::Float(*int64_val as f32)
+        }
+        else if cl_type_name_hint == "double" {
+          CL_TaggedArgument::Double(*int64_val as f64)
+        }
+        else if cl_type_name_hint == "uchar" {
+          CL_TaggedArgument::Uint8(*int64_val as u8)
+        }
+        else if cl_type_name_hint == "char" {
+          CL_TaggedArgument::Int8(*int64_val as i8)
+        }
+        else if cl_type_name_hint == "ushort" {
+          CL_TaggedArgument::Uint16(*int64_val as u16)
+        }
+        else if cl_type_name_hint == "short" {
+          CL_TaggedArgument::Int16(*int64_val as i16)
+        }
+        else if cl_type_name_hint == "uint" {
+          CL_TaggedArgument::Uint32(*int64_val as u32)
+        }
+        else if cl_type_name_hint == "int" {
+          CL_TaggedArgument::Int32(*int64_val as i32)
+        }
+        else if cl_type_name_hint == "ulong" {
+          CL_TaggedArgument::Uint64(*int64_val as u64)
+        }
+        else if cl_type_name_hint == "long" {
+          CL_TaggedArgument::Int64(*int64_val as i64)
+        }
+        else {
+          println!("[ Warning ] Unknown cl_type_name_hint={}, assuming long (aka i64)", cl_type_name_hint);
+          CL_TaggedArgument::Int64(*int64_val)
+        }
+      },
+      Value::Double(double_val) => {
+        if cl_type_name_hint == "float" {
+          CL_TaggedArgument::Float(*double_val as f32)
+        }
+        else if cl_type_name_hint == "double" {
+          CL_TaggedArgument::Double(*double_val as f64)
+        }
+        else if cl_type_name_hint == "uchar" {
+          CL_TaggedArgument::Uint8(*double_val as u8)
+        }
+        else if cl_type_name_hint == "char" {
+          CL_TaggedArgument::Int8(*double_val as i8)
+        }
+        else if cl_type_name_hint == "ushort" {
+          CL_TaggedArgument::Uint16(*double_val as u16)
+        }
+        else if cl_type_name_hint == "short" {
+          CL_TaggedArgument::Int16(*double_val as i16)
+        }
+        else if cl_type_name_hint == "uint" {
+          CL_TaggedArgument::Uint32(*double_val as u32)
+        }
+        else if cl_type_name_hint == "int" {
+          CL_TaggedArgument::Int32(*double_val as i32)
+        }
+        else if cl_type_name_hint == "ulong" {
+          CL_TaggedArgument::Uint64(*double_val as u64)
+        }
+        else if cl_type_name_hint == "long" {
+          CL_TaggedArgument::Int64(*double_val as i64)
+        }
+        else {
+          println!("[ Warning ] Unknown cl_type_name_hint={}, assuming double (aka f64)", cl_type_name_hint);
+          CL_TaggedArgument::Double(*double_val)
+        }
+      },
+      Value::String(string_val) => panic!("Cannot use a string value as a CL Kernel constant!"),
+    }
+  }
+
+
+}

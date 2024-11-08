@@ -216,19 +216,84 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
 }
 
 
-pub fn ld_data_to_kernel_data(ld_data: &ListedData, cl_kernel: &structs::CL_Kernel, k: &opencl3::kernel::Kernel)  {
-  println!("function_name = {:#?}", k.function_name() );
-  println!("num_args = {:?}", k.num_args() );
+pub fn ld_data_to_kernel_data(sc: &structs::SimControl, ld_data: &ListedData, cl_kernel: &structs::CL_Kernel, k: &opencl3::kernel::Kernel) -> Vec<structs::CL_TaggedArgument> {
+  let mut kernel_data = vec![];
+
+  let work_size = ld_data.len();
   if let Ok(argc) = k.num_args() {
     for arg_i in 0..argc {
+      /*
       println!("args[{}] = {:?}, {:?}, {:?}, {:?}, {:?}", arg_i,
         k.get_arg_address_qualifier(arg_i), k.get_arg_access_qualifier(arg_i), k.get_arg_type_qualifier(arg_i),
         k.get_arg_type_name(arg_i), k.get_arg_name(arg_i)
       );
+      */
+      let is_pointer = k.get_arg_address_qualifier(arg_i).unwrap_or(0) == 4507;
+      let is_constant = k.get_arg_type_qualifier(arg_i).unwrap_or(0) == 1;
+      let type_name = k.get_arg_type_name(arg_i).unwrap_or(String::new());
+      let type_name = type_name.trim_end_matches('*'); // Types like 'int*' end with a star, which we do not use b/c we have is_pointer.
+      let variable_name = k.get_arg_name(arg_i).unwrap_or(String::new());
+      let variable_name_lowercase = variable_name.to_lowercase();
+      let variable_name_uppercase = variable_name.to_uppercase();
+
+      if is_pointer {
+
+        // Lookup data in ld_data w/ fuzzy string matching from all records.
+        std::unimplemented!();
+
+        for record in ld_data.iter() {
+          if let Some(val) = record.get(&variable_name) {
+
+          }
+          else if let Some(val) = record.get(&variable_name_lowercase) {
+
+          }
+          else if let Some(val) = record.get(&variable_name_uppercase) {
+
+          }
+          else {
+
+          }
+        }
+
+
+      }
+      else {
+        // This is a constant, look up in cl_kernel.data_constants and if not exists lookup in sc
+        let mut value: Option<structs::CL_TaggedArgument> = None;
+        for constant in cl_kernel.data_constants.iter() {
+          if constant.name == variable_name {
+            // Found it!
+            value = Some( structs::CL_TaggedArgument::from_value(&constant.value, &type_name) );
+            break;
+          }
+        }
+        if value.is_none() {
+          // Look through sc
+          if let Some(val_ref) = sc.data_constants.get(&variable_name) {
+            value = Some( structs::CL_TaggedArgument::from_value(val_ref, &type_name) );
+          }
+        }
+        match value {
+          None => {
+            println!("[ ERROR ] Cannot find variable {} simulation control file OR in {}. Please define a constant named {}", &variable_name, &sc.cl_kernels_file_path.display(), &variable_name);
+            panic!("Required constant not found in kernels.toml data_constants or simcontrol.toml data_constants");
+          }
+          Some(cl_tagged_value) => {
+            kernel_data.push(cl_tagged_value);
+          }
+        }
+
+      }
+
     }
   }
 
-
+  return kernel_data;
 }
 
+pub fn kernel_data_update_ld_data(kernel_data: &Vec<structs::CL_TaggedArgument>, ld_data: &ListedData) {
+  println!("TODO implement kernel_data_update_ld_data");
+
+}
 

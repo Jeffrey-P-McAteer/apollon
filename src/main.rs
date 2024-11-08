@@ -6,6 +6,8 @@
 #![allow(non_camel_case_types)]
 #![allow(unreachable_code)]
 
+use std::cell::{RefCell, RefMut};
+use std::rc::Rc;
 
 use clap::Parser;
 use num_format::{Locale, ToFormattedString};
@@ -71,25 +73,82 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     cl_kernels[i].load_program(&context)?;
   }
 
-  // We now transform t0_data into the desired column space for each kernel
-  let mut cl_kernels_data = vec![];
-  for i in 0..cl_kernels.len() {
-    if let Some(k) = &cl_kernels[i].cl_device_kernel {
-      cl_kernels_data.push(
-        utils::ld_data_to_kernel_data(&t0_data, &cl_kernels[i], &k)
-      );
-    }
-    else {
-      eprintln!("[ Fatal Error ] Kernel {} does not have a cl_device_kernel! Inspect hardware & s/w to ensure kernels compile when loaded.", cl_kernels[i].name);
-      return Ok(());
-    }
-  }
-
-
+  // Each step we go in between ListedData (sim_data) and a utils::ld_data_to_kernel_data vector; eventually
+  // the best approach is to keep everything in a utils::ld_data_to_kernel_data format & map indexes between kernels so they read/write the same data.
+  let mut sim_data = t0_data.clone();
 
   for sim_step_i in 0..simcontrol.num_steps {
-    // data_to_cl_memory
+    // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
+    for i in 0..cl_kernels.len() {
+      if let Some(k) = &cl_kernels[i].cl_device_kernel {
+        let kernel_args = utils::ld_data_to_kernel_data(&simcontrol, &sim_data, &cl_kernels[i], &k);
+
+        println!("sim_step_i={} i={}", sim_step_i, i);
+
+        // Create a command_queue on the Context's device; 8 is a random guess at a good size
+        let queue = opencl3::command_queue::CommandQueue::create_default_with_properties(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE, 0).expect("CommandQueue::create_default failed");
+        //let queue = opencl3::command_queue::CommandQueue::create_default(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE).expect("CommandQueue::create_default failed");
+
+        // Allocate a runtime kernel & feed it inputs; we use RefCell here b/c otherwise inner-loop lifetimes would kill us
+        let mut exec_kernel = opencl3::kernel::ExecuteKernel::new(&k);
+
+        for arg in kernel_args.iter() {
+          unsafe {
+            match arg {
+              structs::CL_TaggedArgument::Uint8Buffer(a)  => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Uint16Buffer(a) => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Uint32Buffer(a) => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Uint64Buffer(a) => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int8Buffer(a)   => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int16Buffer(a)  => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int32Buffer(a)  => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int64Buffer(a)  => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::FloatBuffer(a)  => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::DoubleBuffer(a) => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Uint8(a)        => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Uint16(a)       => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Uint32(a)       => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Uint64(a)       => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int8(a)         => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int16(a)        => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int32(a)        => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Int64(a)        => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Float(a)        => {let exec_kernel = exec_kernel.set_arg(a);},
+              structs::CL_TaggedArgument::Double(a)       => {let exec_kernel = exec_kernel.set_arg(a);},
+            }
+          }
+        }
+
+        { // Set the global work size is the number of entitied being simulated
+          let exec_kernel = exec_kernel.set_global_work_size( sim_data.len() );
+        }
+
+        // Setup command queue
+        let mut kernel_event = unsafe { exec_kernel.enqueue_nd_range(&queue)? };
+
+        let mut events: Vec<opencl3::types::cl_event> = Vec::default();
+        events.push(kernel_event.get());
+
+        // Kernel is now running, we wait for all write events in-order
+        // via enqueue_read_buffer. Once all data is read back, we pass to
+        // utils::kernel_data_update_ld_data
+
+
+
+        utils::kernel_data_update_ld_data(&kernel_args, &mut sim_data);
+      }
+      else {
+        eprintln!("[ Fatal Error ] Kernel {} does not have a cl_device_kernel! Inspect hardware & s/w to ensure kernels compile when loaded.", cl_kernels[i].name);
+        return Ok(());
+      }
+    }
   }
+
+  // TODO write sim_data out to a file
+
+  println!("t0_data = {:#?}", &t0_data);
+
+  println!("sim_data = {:#?}", &sim_data);
 
 
 /*

@@ -131,13 +131,11 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
         events.push(kernel_event.get());
 
-        // Kernel is now running, we wait for all write events in-order
-        // via enqueue_read_buffer. Once all data is read back, we pass to
-        // utils::kernel_data_update_ld_data
+        // Kernel is now running, we do NOT wait for processing to finish. Instead we pass
+        // &events to kernel_data_update_ld_data, where those events will be passed to all read functions.
+        // The CL runtime will guarantee the processing has completed before data is read back out.
 
-
-
-        utils::kernel_data_update_ld_data(&kernel_args, &mut sim_data)?;
+        utils::kernel_data_update_ld_data(&context, &queue, &events, &kernel_args, &mut sim_data)?;
       }
       else {
         eprintln!("[ Fatal Error ] Kernel {} does not have a cl_device_kernel! Inspect hardware & s/w to ensure kernels compile when loaded.", cl_kernels[i].name);

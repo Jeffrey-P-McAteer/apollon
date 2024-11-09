@@ -290,6 +290,11 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
     simcontrol.cl_kernels_file_path = cl_kernels_file_path.clone();
   }
 
+  if let Some(output_animation_file_path) = &cli_args.output_animation_file_path {
+    println!("Overriding simcontrol output_animation_file_path={} with cli arg value ={}", simcontrol.output_animation_file_path.display(), output_animation_file_path.display());
+    simcontrol.output_animation_file_path = output_animation_file_path.clone();
+  }
+
   if let Some(gis_x_attr_name) = &cli_args.gis_x_attr_name {
     println!("Overriding simcontrol gis_x_attr_name={} with cli arg value ={}", simcontrol.gis_x_attr_name, gis_x_attr_name);
     simcontrol.gis_x_attr_name = gis_x_attr_name.to_string();

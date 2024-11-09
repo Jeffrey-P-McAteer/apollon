@@ -168,6 +168,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   // Write to simcontrol.output_data_file_path
   utils::write_ld_file(args, &sim_data, &simcontrol.output_data_file_path).await?;
 
+  // Write to simcontrol.output_animation_file_path
+
+
   let total_end = std::time::Instant::now();
   eprintln!("Total Time: {}", utils::duration_to_display_str(&(total_end - total_start)));
 

@@ -22,6 +22,10 @@ pub struct Args {
     #[arg(short, long)]
     pub cl_kernels_file_path: Option<std::path::PathBuf>,
 
+    /// Path to animated .gif file which will contain saved off GIS frame data every capture-step-period simulation steps
+    #[arg(long)]
+    pub output_animation_file_path: Option<std::path::PathBuf>,
+
     /// Number of simulation steps to run
     #[arg(short, long)]
     pub num_steps: Option<u64>,
@@ -67,6 +71,9 @@ pub struct SimControl {
     /// A data file (.toml) containing OpenCL kernels to be executed,
     /// and which is expected to supply the delta_file_path with functions to use.
     pub cl_kernels_file_path: std::path::PathBuf,
+
+    #[serde(default = "serde_default_pathbuf_devnull")]
+    pub output_animation_file_path: std::path::PathBuf,
 
     /// Number of simulation steps to run
     #[serde(default = "serde_default_num_steps")]

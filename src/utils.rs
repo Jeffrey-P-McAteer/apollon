@@ -149,17 +149,17 @@ pub async fn write_ld_file(args: &structs::Args, ld: &ListedData, path: &std::pa
 
 pub async fn write_ld_file_json(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
   let json_str = serde_jsonrc::to_string(ld)?;
-  std::fs::write(path, json_str)?;
+  std::fs::write(path, json_str+"\n")?;
   Ok(())
 }
 pub async fn write_ld_file_toml(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
   let json_str = serde_jsonrc::to_string(ld)?;
-  std::fs::write(path, json_str)?;
+  std::fs::write(path, json_str+"\n")?;
   Ok(())
 }
 pub async fn write_ld_file_csv(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
   let json_str = serde_jsonrc::to_string(ld)?;
-  std::fs::write(path, json_str)?;
+  std::fs::write(path, json_str+"\n")?;
   Ok(())
 }
 
@@ -312,7 +312,7 @@ pub fn ld_data_to_kernel_data(
             ld_values.push(val.clone());
           }
           else {
-            if args.verbose > 0 {
+            if args.verbose > 1 {
               println!("[ Warning ] Missing value for simulation data column {}, 0.0 will be used for this record.", variable_name);
             }
             ld_values.push(structs::Value::Integer(0)); // Default value regardless of type is 0, b/c we allow ld_values to contain different types & unify later
@@ -714,4 +714,30 @@ fn read_values_from_cl_buffer<T>(
 
   Ok(())
 }
+
+
+
+
+
+pub fn duration_to_display_str(d: &std::time::Duration) -> String {
+  let total_millis = d.as_millis();
+  let ms = total_millis % 1000;
+  let s = (total_millis / 1000) % 60;
+  let m = (total_millis / (1000 * 60)) % 60;
+  let h = total_millis / (1000 * 60 * 60) /* % 24 */;
+  if h > 0 {
+    format!("{:0>2}h {:0>2}m {:0>2}s {:0>3}ms", h, m, s, ms)
+  }
+  else if m > 0 {
+    format!("{:0>2}m {:0>2}s {:0>3}ms", m, s, ms)
+  }
+  else if s > 0 {
+    format!("{:0>2}s {:0>3}ms", s, ms)
+  }
+  else {
+    format!("{:0>3}ms", ms)
+  }
+}
+
+
 

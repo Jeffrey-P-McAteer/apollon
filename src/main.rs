@@ -39,6 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
 
 
 async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Error>> {
+  let total_start = std::time::Instant::now();
 
   let mut simcontrol = utils::read_simcontrol_file(&args.simcontrol_file_path).await?;
   // Overwrite any simcontrol args w/ cli-specified args
@@ -69,9 +70,16 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let context = opencl3::context::Context::from_device(&device)?;
 
   // Compile cl_kernel source code to programs
+  let kernel_compile_start = std::time::Instant::now();
   for i in 0..cl_kernels.len() {
     cl_kernels[i].load_program(&context)?;
   }
+  let kernel_compile_end = std::time::Instant::now();
+  if args.verbose > 0 {
+    eprintln!("CL Kernel Compile Time: {}", utils::duration_to_display_str(&(kernel_compile_end - kernel_compile_start)));
+  }
+
+  let simulation_start = std::time::Instant::now();
 
   // Each step we go in between ListedData (sim_data) and a utils::ld_data_to_kernel_data vector; eventually
   // the best approach is to keep everything in a utils::ld_data_to_kernel_data format & map indexes between kernels so they read/write the same data.
@@ -156,10 +164,18 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
   }
 
+  let simulation_end = std::time::Instant::now();
+  if args.verbose > 0 {
+    eprintln!("Simulation Time: {}", utils::duration_to_display_str(&(simulation_end - simulation_start)));
+  }
+
   // Write to simcontrol.output_data_file_path
   utils::write_ld_file(args, &sim_data, &simcontrol.output_data_file_path).await?;
 
-
+  let total_end = std::time::Instant::now();
+  if args.verbose > 0 {
+    eprintln!("Total Time: {}", utils::duration_to_display_str(&(total_end - total_start)));
+  }
 
 /*
   use opencl3::command_queue::{CommandQueue, CL_QUEUE_PROFILING_ENABLE};

@@ -121,6 +121,48 @@ pub async fn read_simcontrol_file(path: &std::path::Path) -> Result<structs::Sim
   return Err(Box::from( format!("Error, simcontrol file cannot be read b/c it is not TOML or JSON data in the expected format: {}", path.display() ) ));
 }
 
+pub async fn write_ld_file(args: &structs::Args, ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>>  {
+  // Format is selected based off file path extension
+  let ext = path.extension()
+    .and_then(std::ffi::OsStr::to_str)
+    .unwrap_or("")
+    .to_lowercase();
+  match ext.as_str() {
+    "json" => {
+      write_ld_file_json(ld, path).await?;
+    }
+    "toml" => {
+      write_ld_file_toml(ld, path).await?;
+    }
+    "csv" => {
+      write_ld_file_csv(ld, path).await?;
+    }
+    unk_ext => {
+      if args.verbose > 0 {
+        eprintln!("[ Warning ] Unknown output file extension: .{}; Supported extensions are .json, .toml, .csv; Outputting as JSON", unk_ext);
+      }
+      write_ld_file_json(ld, path).await?;
+    }
+  }
+  Ok(())
+}
+
+pub async fn write_ld_file_json(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+  let json_str = serde_jsonrc::to_string(ld)?;
+  std::fs::write(path, json_str)?;
+  Ok(())
+}
+pub async fn write_ld_file_toml(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+  let json_str = serde_jsonrc::to_string(ld)?;
+  std::fs::write(path, json_str)?;
+  Ok(())
+}
+pub async fn write_ld_file_csv(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+  let json_str = serde_jsonrc::to_string(ld)?;
+  std::fs::write(path, json_str)?;
+  Ok(())
+}
+
 
 pub async fn get_pref_device(lower_pref_name: &str) -> Result<opencl3::types::cl_device_id, Box<dyn std::error::Error>> {
 
@@ -187,9 +229,14 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
     simcontrol.preferred_gpu_name = preferred_gpu_name.to_string();
   }
 
-  if let Some(data_file_path) = &cli_args.data_file_path {
-    println!("Overriding simcontrol data_file_path={} with cli arg value ={}", simcontrol.data_file_path.display(), data_file_path.display());
-    simcontrol.data_file_path = data_file_path.clone();
+  if let Some(input_data_file_path) = &cli_args.input_data_file_path {
+    println!("Overriding simcontrol input_data_file_path={} with cli arg value ={}", simcontrol.input_data_file_path.display(), input_data_file_path.display());
+    simcontrol.input_data_file_path = input_data_file_path.clone();
+  }
+
+  if let Some(output_data_file_path) = &cli_args.output_data_file_path {
+    println!("Overriding simcontrol output_data_file_path={} with cli arg value ={}", simcontrol.output_data_file_path.display(), output_data_file_path.display());
+    simcontrol.output_data_file_path = output_data_file_path.clone();
   }
 
   if let Some(cl_kernels_file_path) = &cli_args.cl_kernels_file_path {

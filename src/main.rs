@@ -58,7 +58,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
   }
 
-  let t0_data = utils::read_ld_file(&simcontrol.data_file_path).await;
+  let t0_data = utils::read_ld_file(&simcontrol.input_data_file_path).await;
   let mut cl_kernels = utils::read_cl_kernel_file(&simcontrol.cl_kernels_file_path).await?.kernel;
 
   if args.verbose >= 2 {
@@ -156,11 +156,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
   }
 
-  // TODO write sim_data out to a file
+  // Write to simcontrol.output_data_file_path
+  utils::write_ld_file(args, &sim_data, &simcontrol.output_data_file_path).await?;
 
-  println!("t0_data = {:#?}", &t0_data);
-
-  println!("sim_data = {:#?}", &sim_data);
 
 
 /*

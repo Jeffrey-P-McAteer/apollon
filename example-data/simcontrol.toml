@@ -5,7 +5,7 @@
 # CLI args overwrite the simulation control values.
 
 [simulation]
-data_file_path = "example-data/entities.csv"
+input_data_file_path = "example-data/entities.csv"
 cl_kernels_file_path = "example-data/cl-kernels.toml"
 
 num_steps = 100

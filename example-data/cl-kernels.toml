@@ -34,19 +34,19 @@ cl_program_compiler_options = ""
 source = '''
 kernel void compute_position (
     global float const* id,
-    global float* x0,
-    global float* y0,
+    global float* X0,
+    global float* Y0,
     float variable_name,
     long another_var
 )
 {
     const size_t i = get_global_id(0);
     if (i == 0) {
-      x0[i] = x0[i] + 0.1;
-      y0[i] = y0[i] + 0.1;
+      X0[i] = X0[i] + 0.1;
+      Y0[i] = Y0[i] + 0.1;
     }
     else {
-      x0[i] = x0[i] - 0.1;
+      X0[i] = X0[i] - 0.1;
     }
 }
 '''

@@ -11,7 +11,11 @@ pub struct Args {
 
     /// A data file (.csv, .json, etc.) containing T=0 data for the simulation.
     #[arg(short, long)]
-    pub data_file_path: Option<std::path::PathBuf>,
+    pub input_data_file_path: Option<std::path::PathBuf>,
+
+    /// A data file (.csv, .json, etc.) path which will have T=<num_steps> data from the simulation written to it
+    #[arg(short, long)]
+    pub output_data_file_path: Option<std::path::PathBuf>,
 
     /// A data file (.toml) containing OpenCL kernels to be executed,
     /// and which is expected to supply the delta_file_path with functions to use.
@@ -50,7 +54,11 @@ pub struct SimControl_file { // utility to allow us to specify name of value
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct SimControl {
     /// A data file (.csv, .json, etc.) containing T=0 data for the simulation.
-    pub data_file_path: std::path::PathBuf,
+    pub input_data_file_path: std::path::PathBuf,
+
+    /// A data file (.csv, .json, etc.) path which will have T=<num_steps> data from the simulation written to it
+    #[serde(default = "serde_default_pathbuf_devnull")]
+    pub output_data_file_path: std::path::PathBuf,
 
     /// A data file (.toml) containing OpenCL kernels to be executed,
     /// and which is expected to supply the delta_file_path with functions to use.
@@ -85,7 +93,10 @@ fn serde_default_gis_y_attr_name()   -> String { "Y".to_string() }
 fn serde_default_column_types()      -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }
 fn serde_default_value_map()         -> HashMap<String, Value> { HashMap::<String, Value>::new() }
 
-
+#[cfg(target_os = "windows")]
+fn serde_default_pathbuf_devnull()   -> std::path::PathBuf { "NUL".into() }
+#[cfg(not(target_os = "windows"))]
+fn serde_default_pathbuf_devnull()   -> std::path::PathBuf { "/dev/null".into() }
 
 
 

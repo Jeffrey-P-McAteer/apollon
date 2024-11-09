@@ -75,9 +75,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     cl_kernels[i].load_program(&context)?;
   }
   let kernel_compile_end = std::time::Instant::now();
-  if args.verbose > 0 {
-    eprintln!("CL Kernel Compile Time: {}", utils::duration_to_display_str(&(kernel_compile_end - kernel_compile_start)));
-  }
+  eprintln!("CL Kernel Compile Time: {}", utils::duration_to_display_str(&(kernel_compile_end - kernel_compile_start)));
 
   let simulation_start = std::time::Instant::now();
 
@@ -165,17 +163,13 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
 
   let simulation_end = std::time::Instant::now();
-  if args.verbose > 0 {
-    eprintln!("Simulation Time: {}", utils::duration_to_display_str(&(simulation_end - simulation_start)));
-  }
+  eprintln!("Simulation Time: {}", utils::duration_to_display_str(&(simulation_end - simulation_start)));
 
   // Write to simcontrol.output_data_file_path
   utils::write_ld_file(args, &sim_data, &simcontrol.output_data_file_path).await?;
 
   let total_end = std::time::Instant::now();
-  if args.verbose > 0 {
-    eprintln!("Total Time: {}", utils::duration_to_display_str(&(total_end - total_start)));
-  }
+  eprintln!("Total Time: {}", utils::duration_to_display_str(&(total_end - total_start)));
 
 /*
   use opencl3::command_queue::{CommandQueue, CL_QUEUE_PROFILING_ENABLE};

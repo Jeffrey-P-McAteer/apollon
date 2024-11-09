@@ -26,6 +26,10 @@ pub struct Args {
     #[arg(short, long)]
     pub num_steps: Option<u64>,
 
+    /// Every N steps a single animation frame is recorded; this allows high-resolution simulations to run w/o creating massive+slow animation files by capturing eg every 10 simulation steps.
+    pub capture_step_period: Option<u64>,
+
+
     /// Preferred GPU name to use. Pass "LIST" to list all GPUs detected on this system.
     #[arg(short, long)]
     pub preferred_gpu_name: Option<String>,
@@ -68,6 +72,10 @@ pub struct SimControl {
     #[serde(default = "serde_default_num_steps")]
     pub num_steps: u64,
 
+    /// Every N steps a single animation frame is recorded; this allows high-resolution simulations to run w/o creating massive+slow animation files by capturing eg every 10 simulation steps.
+    #[serde(default = "serde_default_capture_step_period")]
+    pub capture_step_period: u64,
+
     /// Preferred GPU name to use. Pass "LIST" to list all GPUs detected on this system.
     #[serde(default = "serde_empty_string")]
     pub preferred_gpu_name: String,
@@ -98,6 +106,7 @@ fn serde_default_pathbuf_devnull()   -> std::path::PathBuf { "NUL".into() }
 #[cfg(not(target_os = "windows"))]
 fn serde_default_pathbuf_devnull()   -> std::path::PathBuf { "/dev/null".into() }
 
+fn serde_default_capture_step_period() -> u64 { 10 }
 
 
 

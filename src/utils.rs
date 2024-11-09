@@ -260,11 +260,6 @@ pub async fn get_pref_device(lower_pref_name: &str) -> Result<opencl3::types::cl
 }
 
 pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl, cli_args: &structs::Args) {
-  if let Some(num_steps) = &cli_args.num_steps {
-    println!("Overriding simcontrol num_steps={} with cli arg value ={}", simcontrol.num_steps, num_steps);
-    simcontrol.num_steps = *num_steps;
-  }
-
   if let Some(preferred_gpu_name) = &cli_args.preferred_gpu_name {
     println!("Overriding simcontrol preferred_gpu_name={} with cli arg value ={}", simcontrol.preferred_gpu_name, preferred_gpu_name);
     simcontrol.preferred_gpu_name = preferred_gpu_name.to_string();
@@ -280,9 +275,14 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
     simcontrol.output_data_file_path = output_data_file_path.clone();
   }
 
-  if let Some(cl_kernels_file_path) = &cli_args.cl_kernels_file_path {
-    println!("Overriding simcontrol cl_kernels_file_path={} with cli arg value ={}", simcontrol.cl_kernels_file_path.display(), cl_kernels_file_path.display());
-    simcontrol.cl_kernels_file_path = cl_kernels_file_path.clone();
+  if let Some(num_steps) = &cli_args.num_steps {
+    println!("Overriding simcontrol num_steps={} with cli arg value ={}", simcontrol.num_steps, num_steps);
+    simcontrol.num_steps = num_steps.clone();
+  }
+
+  if let Some(capture_step_period) = &cli_args.capture_step_period {
+    println!("Overriding simcontrol capture_step_period={} with cli arg value ={}", simcontrol.capture_step_period, capture_step_period);
+    simcontrol.capture_step_period = capture_step_period.clone();
   }
 
   if let Some(cl_kernels_file_path) = &cli_args.cl_kernels_file_path {

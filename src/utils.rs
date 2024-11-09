@@ -153,13 +153,54 @@ pub async fn write_ld_file_json(ld: &ListedData, path: &std::path::Path) -> Resu
   Ok(())
 }
 pub async fn write_ld_file_toml(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-  let json_str = serde_jsonrc::to_string(ld)?;
-  std::fs::write(path, json_str+"\n")?;
+  let toml_str = toml::to_string(ld)?;
+  std::fs::write(path, toml_str+"\n")?;
   Ok(())
 }
 pub async fn write_ld_file_csv(ld: &ListedData, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-  let json_str = serde_jsonrc::to_string(ld)?;
-  std::fs::write(path, json_str+"\n")?;
+  use std::fs::OpenOptions;
+  let fd = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(path)?;
+  let mut wtr = csv::Writer::from_writer(fd);
+
+  let mut ld_keys = std::collections::HashSet::<String>::new();
+  for record in ld {
+    for (key, value) in record.into_iter() {
+      if !ld_keys.contains(key) {
+        ld_keys.insert(key.to_string());
+      }
+    }
+  }
+  // Order the keys alphabetically
+  let mut ld_keys: Vec<String> = ld_keys.into_iter().collect();
+  ld_keys.sort();
+  let ld_keys = ld_keys;
+
+  wtr.write_record(ld_keys.clone())?;
+
+  for record in ld {
+    let mut svalue_row: Vec<String> = vec![];
+    for key in ld_keys.iter() {
+      if let Some(val) = record.get(key) {
+        match val {
+          structs::Value::Integer(i) => svalue_row.push(format!("{}", i)),
+          structs::Value::Double(d)  => svalue_row.push(format!("{}", d)),
+          structs::Value::String(s)  => svalue_row.push(format!("{}", s)),
+        }
+      }
+      else {
+        svalue_row.push("".to_string());
+      }
+    }
+    wtr.write_record(svalue_row)?;
+  }
+
+
+  wtr.flush()?;
+
   Ok(())
 }
 

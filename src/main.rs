@@ -69,6 +69,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
   let context = opencl3::context::Context::from_device(&device)?;
 
+  let device_init_end = std::time::Instant::now();
+  eprintln!("Hardware Initialization: {}", utils::duration_to_display_str(&(device_init_end - total_start)));
+
   // Compile cl_kernel source code to programs
   let kernel_compile_start = std::time::Instant::now();
   for i in 0..cl_kernels.len() {

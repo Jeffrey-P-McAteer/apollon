@@ -22,7 +22,8 @@ colmap.y0 = 'Y0'
 # Constant variables are NOT pointers, and get passed in as their type in the order specified here.
 # for that reason, order in this list MUST MATCH ordering in your kernel's `source` function.
 data_constants = [
-  ['entity_speed_coef', 'float', 5.2 ],
+  ['red_entity_speed_coef', 'float', 1.5 ],
+  ['blue_entity_speed_coef', 'float', 2.0 ],
 #  ['another_var',   'int64', 999 ],
 ]
 
@@ -36,23 +37,23 @@ kernel void compute_position (
     global float const* id,
     global float* X0,
     global float* Y0,
-    float entity_speed_coef
+    float blue_entity_speed_coef,
+    float red_entity_speed_coef
 )
 {
     const size_t i = get_global_id(0);
     if (i == 0) {
-      X0[i] = X0[i] + (entity_speed_coef * 0.1);
-      Y0[i] = Y0[i] + (entity_speed_coef * 0.1);
+      X0[i] = X0[i] + (blue_entity_speed_coef);
+      Y0[i] = Y0[i] + (blue_entity_speed_coef);
     }
     else {
-      //X0[i] = X0[i] - (entity_speed_coef * 0.05);
 
       // TODO add weight & figure out a momentum calculation
 
       float x_dist_to_i0 = X0[i] - X0[0];
       float y_dist_to_i0 = Y0[i] - Y0[0];
-      X0[i] = X0[i] + (entity_speed_coef * 0.05 * (-x_dist_to_i0 / 100.0));
-      Y0[i] = Y0[i] + (entity_speed_coef * 0.05 * (-y_dist_to_i0 / 100.0));
+      X0[i] = X0[i] + (red_entity_speed_coef * (-x_dist_to_i0 / 100.0));
+      Y0[i] = Y0[i] + (red_entity_speed_coef * (-y_dist_to_i0 / 100.0));
     }
 }
 '''

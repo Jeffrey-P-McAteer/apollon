@@ -90,6 +90,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   )?;
   let gif_root = gif_plot_backend.into_drawing_area();
 
+  let mut gif_point_history: Vec<(i32, i32)> = vec![];
+
   let simulation_start = std::time::Instant::now();
 
   // Each step we go in between ListedData (sim_data) and a utils::ld_data_to_kernel_data vector; eventually
@@ -179,6 +181,12 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       // Render!
       gif_root.fill(&WHITE)?;
 
+      // Render entity histories as small dots
+      for (historic_x, historic_y) in gif_point_history.iter() {
+        let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
+        gif_root.draw(&elm)?;
+      }
+
       // For each entity, if an gis_x_attr_name and gis_y_attr_name coordinate are known and are numeric,
       // render a dot with a label from gis_name_attr
       for row_i in 0..sim_data.len() {
@@ -194,6 +202,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
                     ("sans-serif", 15.0).into_font(),
               );
             gif_root.draw(&elm)?;
+
+            gif_point_history.push( (x_i32, y_i32) );
           }
         }
       }

@@ -15,6 +15,9 @@ num_steps = 100
 gis_x_attr_name = "X0"
 gis_y_attr_name = "Y0"
 
+# This is optional and allows GUI labeling; if unspecified the row index will be used (ie 0, 1, 2, 3...N for all N rows of input_data_file_path)
+gis_name_attr = "Name"
+
 
 # TODO would it make sense to expose some kind of data_constants['constant_name'] range
 # definition here? This would expose parametric capabilities to a single simulation.

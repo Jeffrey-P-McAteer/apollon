@@ -295,6 +295,21 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
     simcontrol.output_animation_file_path = output_animation_file_path.clone();
   }
 
+  if let Some(output_animation_width) = &cli_args.output_animation_width {
+    println!("Overriding simcontrol output_animation_width={} with cli arg value ={}", simcontrol.output_animation_width, output_animation_width);
+    simcontrol.output_animation_width = output_animation_width.clone();
+  }
+
+  if let Some(output_animation_height) = &cli_args.output_animation_height {
+    println!("Overriding simcontrol output_animation_height={} with cli arg value ={}", simcontrol.output_animation_height, output_animation_height);
+    simcontrol.output_animation_height = output_animation_height.clone();
+  }
+
+  if let Some(output_animation_frame_delay) = &cli_args.output_animation_frame_delay {
+    println!("Overriding simcontrol output_animation_frame_delay={} with cli arg value ={}", simcontrol.output_animation_frame_delay, output_animation_frame_delay);
+    simcontrol.output_animation_frame_delay = output_animation_frame_delay.clone();
+  }
+
   if let Some(gis_x_attr_name) = &cli_args.gis_x_attr_name {
     println!("Overriding simcontrol gis_x_attr_name={} with cli arg value ={}", simcontrol.gis_x_attr_name, gis_x_attr_name);
     simcontrol.gis_x_attr_name = gis_x_attr_name.to_string();
@@ -303,6 +318,11 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
   if let Some(gis_y_attr_name) = &cli_args.gis_y_attr_name {
     println!("Overriding simcontrol gis_y_attr_name={} with cli arg value ={}", simcontrol.gis_y_attr_name, gis_y_attr_name);
     simcontrol.gis_y_attr_name = gis_y_attr_name.to_string();
+  }
+
+  if let Some(gis_name_attr) = &cli_args.gis_name_attr {
+    println!("Overriding simcontrol gis_name_attr={} with cli arg value ={}", simcontrol.gis_name_attr, gis_name_attr);
+    simcontrol.gis_name_attr = gis_name_attr.to_string();
   }
 
 

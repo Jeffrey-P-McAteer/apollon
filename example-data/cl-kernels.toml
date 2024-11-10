@@ -46,7 +46,7 @@ kernel void compute_position (
       Y0[i] = Y0[i] + 0.1;
     }
     else {
-      X0[i] = X0[i] - 0.1;
+      X0[i] = X0[i] - 0.05;
     }
 }
 '''

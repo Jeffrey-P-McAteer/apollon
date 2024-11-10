@@ -26,6 +26,18 @@ pub struct Args {
     #[arg(long)]
     pub output_animation_file_path: Option<std::path::PathBuf>,
 
+    /// Width in pixels of output animation
+    #[arg(long)]
+    pub output_animation_width: Option<u32>,
+
+    /// Height in pixels of output animation
+    #[arg(long)]
+    pub output_animation_height: Option<u32>,
+
+    /// Animation frame delay in milliseconds
+    #[arg(long)]
+    pub output_animation_frame_delay: Option<u32>,
+
     /// Number of simulation steps to run
     #[arg(short, long)]
     pub num_steps: Option<u64>,
@@ -39,12 +51,16 @@ pub struct Args {
     pub preferred_gpu_name: Option<String>,
 
     /// Which attribute in delta_file_path holds the item's X position?
-    #[arg(short, long)]
+    #[arg( long)]
     pub gis_x_attr_name: Option<String>,
 
     /// Which attribute in delta_file_path holds the item's Y position?
-    #[arg(short, long)]
+    #[arg(long)]
     pub gis_y_attr_name: Option<String>,
+
+    /// Which attribute in delta_file_path holds the item's Name?
+    #[arg(short, long)]
+    pub gis_name_attr: Option<String>,
 
     /// Amount of verbosity in printed status messages; can be specified multiple times (ie "-v", "-vv", "-vvv" for greater verbosity)
     #[arg(short = 'v', long, action = clap::ArgAction::Count)]
@@ -75,6 +91,19 @@ pub struct SimControl {
     #[serde(default = "serde_default_pathbuf_devnull")]
     pub output_animation_file_path: std::path::PathBuf,
 
+    /// Width in pixels of output animation
+    #[serde(default = "serde_default_output_animation_width")]
+    pub output_animation_width: u32,
+
+    /// Height in pixels of output animation
+    #[serde(default = "serde_default_output_animation_height")]
+    pub output_animation_height: u32,
+
+    /// Animation frame delay in milliseconds
+    #[serde(default = "serde_default_output_animation_frame_delay")]
+    pub output_animation_frame_delay: u32,
+
+
     /// Number of simulation steps to run
     #[serde(default = "serde_default_num_steps")]
     pub num_steps: u64,
@@ -92,6 +121,9 @@ pub struct SimControl {
     #[serde(default = "serde_default_gis_y_attr_name")]
     pub gis_y_attr_name: String,
 
+    #[serde(default = "serde_default_gis_name_attr")]
+    pub gis_name_attr: String,
+
     // If not specified under [simulation], these are copied in from SimControl_file
     #[serde(default = "serde_default_value_map")]
     pub data_constants: HashMap<String, Value>,
@@ -105,6 +137,7 @@ fn serde_empty_string()              -> String { String::new() }
 fn serde_default_num_steps()         -> u64    { 64 }
 fn serde_default_gis_x_attr_name()   -> String { "X".to_string() }
 fn serde_default_gis_y_attr_name()   -> String { "Y".to_string() }
+fn serde_default_gis_name_attr()     -> String { "".to_string() }
 fn serde_default_column_types()      -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }
 fn serde_default_value_map()         -> HashMap<String, Value> { HashMap::<String, Value>::new() }
 
@@ -115,6 +148,9 @@ fn serde_default_pathbuf_devnull()   -> std::path::PathBuf { "/dev/null".into() 
 
 fn serde_default_capture_step_period() -> u64 { 10 }
 
+fn serde_default_output_animation_width()   -> u32 { 1280 }
+fn serde_default_output_animation_height()  -> u32 { 960 }
+fn serde_default_output_animation_frame_delay()  -> u32 { 250 }
 
 
 
@@ -236,6 +272,41 @@ impl Value {
     }
     else {
       Value::String(str_val.to_string())
+    }
+  }
+  pub fn to_i64(&self) -> Result<i64, Box<dyn std::error::Error>> {
+    match self {
+      Value::Integer(i) => Ok(*i),
+      Value::Double(f) =>  Ok(f.round() as i64),
+      Value::String(s) =>  Ok(s.parse::<i64>()?),
+    }
+  }
+  pub fn to_i32(&self) -> Result<i32, Box<dyn std::error::Error>> {
+    match self {
+      Value::Integer(i) => Ok(*i as i32),
+      Value::Double(f) =>  Ok(f.round() as i32),
+      Value::String(s) =>  Ok(s.parse::<i32>()?),
+    }
+  }
+  pub fn to_f64(&self) -> Result<f64, Box<dyn std::error::Error>> {
+    match self {
+      Value::Integer(i) => Ok(*i as f64),
+      Value::Double(f) =>  Ok(*f),
+      Value::String(s) =>  Ok(s.parse::<f64>()?),
+    }
+  }
+  pub fn to_f32(&self) -> Result<f32, Box<dyn std::error::Error>> {
+    match self {
+      Value::Integer(i) => Ok(*i as f32),
+      Value::Double(f) =>  Ok(*f as f32),
+      Value::String(s) =>  Ok(s.parse::<f32>()?),
+    }
+  }
+  pub fn to_string(&self) -> String {
+    match self {
+      Value::Integer(i) => format!("{}", i),
+      Value::Double(f) =>  format!("{}", f),
+      Value::String(s) =>  s.clone(),
     }
   }
 }

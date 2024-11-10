@@ -11,6 +11,8 @@ use std::rc::Rc;
 
 use clap::Parser;
 use num_format::{Locale, ToFormattedString};
+use plotters::prelude::*;
+use plotters::coord::types::RangedCoordf32;
 
 pub mod structs;
 pub mod utils;
@@ -79,6 +81,13 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
   let kernel_compile_end = std::time::Instant::now();
   eprintln!("CL Kernel Compile Time: {}", utils::duration_to_display_str(&(kernel_compile_end - kernel_compile_start)));
+
+  let gif_plot_backend = BitMapBackend::gif(
+    simcontrol.output_animation_file_path.clone(),
+    (simcontrol.output_animation_width, simcontrol.output_animation_height),
+    simcontrol.output_animation_frame_delay
+  )?;
+  let gif_root = gif_plot_backend.into_drawing_area();
 
   let simulation_start = std::time::Instant::now();
 
@@ -163,6 +172,34 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         return Ok(());
       }
     }
+
+    // Finally possibly render a frame of data to gif_plot
+    if sim_step_i % simcontrol.capture_step_period == 0 {
+      // Render!
+      gif_root.fill(&WHITE)?;
+
+      // For each entity, if an gis_x_attr_name and gis_y_attr_name coordinate are known and are numeric,
+      // render a dot with a label from gis_name_attr
+      for row_i in 0..sim_data.len() {
+        if let (Some(x_val), Some(y_val)) = (sim_data[row_i].get(&simcontrol.gis_x_attr_name), sim_data[row_i].get(&simcontrol.gis_y_attr_name)) {
+          if let (Ok(x_i32), Ok(y_i32)) = (x_val.to_i32(), y_val.to_i32()) {
+            // Render!
+            let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
+            let elm = EmptyElement::at((x_i32, y_i32))
+                + Circle::new((0, 0), 2, ShapeStyle::from(&BLACK).filled())
+                + Text::new(
+                    label_s,
+                    (10, 0),
+                    ("sans-serif", 15.0).into_font(),
+              );
+            gif_root.draw(&elm)?;
+          }
+        }
+      }
+
+      gif_root.present()?;
+    }
+
   }
 
   let simulation_end = std::time::Instant::now();

@@ -12,6 +12,7 @@ serde_jsonrc = { version = "0.1" }
 tokio =        { version = "1", features = ["full"] }
 num-format =   { version = "0.4" }
 toml =         { version = "0.8"  }
+plotters =     { version = "0.3" }
 
 [dependencies.opencl3]
 version = "0.9"

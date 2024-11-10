@@ -502,27 +502,34 @@ pub fn ld_data_to_kernel_data(
       else {
         // This is a constant, look up in cl_kernel.data_constants and if not exists lookup in sc
         let mut value: Option<structs::CL_TaggedArgument> = None;
-        for constant in cl_kernel.data_constants.iter() {
-          if constant.name == variable_name {
-            // Found it!
-            value = Some( structs::CL_TaggedArgument::from_value(&constant.value, &type_name) );
-            break;
-          }
-        }
+
+        // Look through args.data_constant
         if value.is_none() {
-          // Look through sc
-          if let Some(val_ref) = sc.data_constants.get(&variable_name) {
-            value = Some( structs::CL_TaggedArgument::from_value(val_ref, &type_name) );
-          }
-        }
-        if value.is_none() {
-          // Look through args.data_constant
           for dc in args.data_constant.iter() {
             if dc.name == variable_name {
               value = Some( structs::CL_TaggedArgument::from_value(&dc.value, &type_name) );
             }
           }
         }
+
+        // Look through simcontrol toml file
+        if value.is_none() {
+          if let Some(val_ref) = sc.data_constants.get(&variable_name) {
+            value = Some( structs::CL_TaggedArgument::from_value(val_ref, &type_name) );
+          }
+        }
+
+        // Look through kernel constants
+        if value.is_none() {
+          for constant in cl_kernel.data_constants.iter() {
+            if constant.name == variable_name {
+              // Found it!
+              value = Some( structs::CL_TaggedArgument::from_value(&constant.value, &type_name) );
+              break;
+            }
+          }
+        }
+
         match value {
           None => {
             println!("[ ERROR ] Cannot find variable {} simulation control file OR in {}. Please define a constant named {} or pass a value on the command line like --data-constant {}=<VALUE>", &variable_name, &sc.cl_kernels_file_path.display(), &variable_name, &variable_name);

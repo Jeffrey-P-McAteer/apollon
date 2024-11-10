@@ -23,5 +23,5 @@ gis_name_attr = "Name"
 # definition here? This would expose parametric capabilities to a single simulation.
 
 [data_constants]
-#entity_speed_coef = 1.5
+entity_speed_coef = 1.0
 

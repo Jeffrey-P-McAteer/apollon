@@ -22,7 +22,7 @@ colmap.y0 = 'Y0'
 # Constant variables are NOT pointers, and get passed in as their type in the order specified here.
 # for that reason, order in this list MUST MATCH ordering in your kernel's `source` function.
 data_constants = [
-#  ['entity_speed_coef', 'float', 5.2 ],
+  ['entity_speed_coef', 'float', 5.2 ],
 #  ['another_var',   'int64', 999 ],
 ]
 

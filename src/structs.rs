@@ -62,11 +62,42 @@ pub struct Args {
     #[arg(short, long)]
     pub gis_name_attr: Option<String>,
 
+    /// Specify data constants such as, which override simcontrol_file_path, which override cl_kernels_file_path.
+    /// This is best used for briefly testing 1 different value among a set of many constants for a simulation.
+    /// Example syntax: --data-constant SIM_VAR_NAME=5.23
+    #[arg(short, long, value_parser = NamedDataConstant::from_str )]
+    pub data_constant: Vec<NamedDataConstant>,
+
     /// Amount of verbosity in printed status messages; can be specified multiple times (ie "-v", "-vv", "-vvv" for greater verbosity)
     #[arg(short = 'v', long, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NamedDataConstant {
+  pub name: String,
+  pub value: Value,
+}
+
+impl NamedDataConstant {
+  pub fn from_str(s: &str) -> Result<NamedDataConstant, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    match s.split_once('=') {
+      Some((key, value)) => {
+        Ok(
+          Self {
+            name: key.into(),
+            value: Value::from_str(value)
+          }
+        )
+      }
+      None => {
+        Err("Bad format for variable! Expected format is NAME=<number>, where <number> is an arabic numeric".into())
+      }
+    }
+  }
+}
+
 
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -127,9 +158,6 @@ pub struct SimControl {
     // If not specified under [simulation], these are copied in from SimControl_file
     #[serde(default = "serde_default_value_map")]
     pub data_constants: HashMap<String, Value>,
-
-    //#[serde(default = "serde_default_column_types")]
-    //pub column_types: HashMap<String, ValueType>,
 
 }
 

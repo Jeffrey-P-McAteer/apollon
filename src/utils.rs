@@ -515,10 +515,18 @@ pub fn ld_data_to_kernel_data(
             value = Some( structs::CL_TaggedArgument::from_value(val_ref, &type_name) );
           }
         }
+        if value.is_none() {
+          // Look through args.data_constant
+          for dc in args.data_constant.iter() {
+            if dc.name == variable_name {
+              value = Some( structs::CL_TaggedArgument::from_value(&dc.value, &type_name) );
+            }
+          }
+        }
         match value {
           None => {
-            println!("[ ERROR ] Cannot find variable {} simulation control file OR in {}. Please define a constant named {}", &variable_name, &sc.cl_kernels_file_path.display(), &variable_name);
-            panic!("Required constant not found in kernels.toml data_constants or simcontrol.toml data_constants");
+            println!("[ ERROR ] Cannot find variable {} simulation control file OR in {}. Please define a constant named {} or pass a value on the command line like --data-constant {}=<VALUE>", &variable_name, &sc.cl_kernels_file_path.display(), &variable_name, &variable_name);
+            panic!("Required constant not found in kernels.toml data_constants, or simcontrol.toml data_constants, or passed as --data-constant VAR=val");
           }
           Some(cl_tagged_value) => {
             kernel_data.push(cl_tagged_value);

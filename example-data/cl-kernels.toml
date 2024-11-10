@@ -45,7 +45,14 @@ kernel void compute_position (
       Y0[i] = Y0[i] + (entity_speed_coef * 0.1);
     }
     else {
-      X0[i] = X0[i] - (entity_speed_coef * 0.05);
+      //X0[i] = X0[i] - (entity_speed_coef * 0.05);
+
+      // TODO add weight & figure out a momentum calculation
+
+      float x_dist_to_i0 = X0[i] - X0[0];
+      float y_dist_to_i0 = Y0[i] - Y0[0];
+      X0[i] = X0[i] + (entity_speed_coef * 0.05 * (x_dist_to_i0 / 100.0);
+      Y0[i] = Y0[i] + (entity_speed_coef * 0.05 * (y_dist_to_i0 / 100.0));
     }
 }
 '''

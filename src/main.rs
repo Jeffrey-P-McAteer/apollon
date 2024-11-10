@@ -31,6 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
   rt.block_on(async {
     if let Err(e) = main_async(&args).await {
       eprintln!("[ main_async ] {}", e);
+      std::process::exit(1);
     }
   });
 

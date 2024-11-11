@@ -59,8 +59,12 @@ pub struct Args {
     pub gis_y_attr_name: Option<String>,
 
     /// Which attribute in delta_file_path holds the item's Name?
-    #[arg(short, long)]
+    #[arg(long)]
     pub gis_name_attr: Option<String>,
+
+    /// Which attribute in delta_file_path holds the item's Color if drawn on a graph?
+    #[arg(long)]
+    pub gis_color_attr: Option<String>,
 
     /// Specify data constants such as, which override simcontrol_file_path, which override cl_kernels_file_path.
     /// This is best used for briefly testing 1 different value among a set of many constants for a simulation.
@@ -155,6 +159,10 @@ pub struct SimControl {
     #[serde(default = "serde_default_gis_name_attr")]
     pub gis_name_attr: String,
 
+    /// Which attribute in delta_file_path holds the item's Color if drawn on a graph?
+    #[serde(default = "serde_default_gis_color_attr")]
+    pub gis_color_attr: String,
+
     // If not specified under [simulation], these are copied in from SimControl_file
     #[serde(default = "serde_default_value_map")]
     pub data_constants: HashMap<String, Value>,
@@ -166,6 +174,7 @@ fn serde_default_num_steps()         -> u64    { 64 }
 fn serde_default_gis_x_attr_name()   -> String { "X".to_string() }
 fn serde_default_gis_y_attr_name()   -> String { "Y".to_string() }
 fn serde_default_gis_name_attr()     -> String { "".to_string() }
+fn serde_default_gis_color_attr()    -> String { "".to_string() }
 fn serde_default_column_types()      -> HashMap<String, ValueType> { HashMap::<String, ValueType>::new() }
 fn serde_default_value_map()         -> HashMap<String, Value> { HashMap::<String, Value>::new() }
 

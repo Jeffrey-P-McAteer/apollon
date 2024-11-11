@@ -98,6 +98,30 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   // the best approach is to keep everything in a utils::ld_data_to_kernel_data format & map indexes between kernels so they read/write the same data.
   let mut sim_data = t0_data.clone();
 
+  // For performance reasons we pre-allocate all entity colors here and re-use
+  // when plotting data. This means there will be NO capability to change an entity color in the middle of
+  // a sim; and if there were I'd want to provide the API as an "index into known colors" anyhow.
+  let mut sim_data_colors: Vec<plotters::style::RGBColor> = vec![];
+  for row in sim_data.iter() {
+    if let Some(str_val) = row.get(&simcontrol.gis_color_attr) {
+      match csscolorparser::parse(str_val.to_string().as_str()) {
+        Ok(css_color_obj) => {
+          let components = css_color_obj.to_rgba8();
+          sim_data_colors.push( plotters::style::RGBColor(components[0], components[1], components[2]) );
+        }
+        Err(e) => {
+          if args.verbose > 0 {
+            eprintln!("{:?}", e);
+          }
+         sim_data_colors.push(plotters::style::colors::BLACK);
+        }
+      }
+    }
+    else {
+       sim_data_colors.push(plotters::style::colors::BLACK);
+    }
+  }
+
   for sim_step_i in 0..simcontrol.num_steps {
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
     for i in 0..cl_kernels.len() {
@@ -195,7 +219,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
             // Render!
             let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
             let elm = EmptyElement::at((x_i32, y_i32))
-                + Circle::new((0, 0), 2, ShapeStyle::from(&BLACK).filled())
+                + Circle::new((0, 0), 2, ShapeStyle::from(&sim_data_colors[row_i]).filled())
                 + Text::new(
                     label_s,
                     (10, 0),

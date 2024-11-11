@@ -325,6 +325,10 @@ pub fn inplace_update_simcontrol_from_args(simcontrol: &mut structs::SimControl,
     simcontrol.gis_name_attr = gis_name_attr.to_string();
   }
 
+  if let Some(gis_color_attr) = &cli_args.gis_color_attr {
+    println!("Overriding simcontrol gis_color_attr={} with cli arg value ={}", simcontrol.gis_color_attr, gis_color_attr);
+    simcontrol.gis_color_attr = gis_color_attr.to_string();
+  }
 
 }
 

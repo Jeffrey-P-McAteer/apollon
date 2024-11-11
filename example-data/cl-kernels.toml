@@ -52,8 +52,17 @@ kernel void compute_position (
 
       float x_dist_to_i0 = X0[i] - X0[0];
       float y_dist_to_i0 = Y0[i] - Y0[0];
-      X0[i] = X0[i] + (red_entity_speed_coef * (-x_dist_to_i0 / 100.0));
-      Y0[i] = Y0[i] + (red_entity_speed_coef * (-y_dist_to_i0 / 100.0));
+      float dist = fabs(x_dist_to_i0) + fabs(y_dist_to_i0);
+      if (dist > 25.0) {
+        // Move 10% faster
+        X0[i] = X0[i] + (red_entity_speed_coef * (-x_dist_to_i0 / 90.0) );
+        Y0[i] = Y0[i] + (red_entity_speed_coef * (-y_dist_to_i0 / 90.0) );
+      }
+      else {
+        // Move slower
+        X0[i] = X0[i] + (red_entity_speed_coef * (-x_dist_to_i0 / 100.0) );
+        Y0[i] = Y0[i] + (red_entity_speed_coef * (-y_dist_to_i0 / 100.0) );
+      }
     }
 }
 '''

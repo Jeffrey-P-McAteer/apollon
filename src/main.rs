@@ -250,6 +250,18 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         }
       }
 
+      // Draw sim step in lower-left corner
+      let sim_step_txt = format!("{:_>9}", sim_step_i);
+      let elm = Text::new(
+            sim_step_txt,
+            (
+              (simcontrol.output_animation_width - 72) as i32,
+              (simcontrol.output_animation_height - 16) as i32
+            ),
+            ("monospace", 14.0).into_font());
+      gif_root.draw(&elm)?;
+
+
       gif_root.present()?;
 
       let render_end = std::time::Instant::now();

@@ -122,14 +122,19 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
   }
 
+  let mut total_kernel_execs_duration = std::time::Duration::from_millis(0);
+  let mut total_convert_overhead_duration = std::time::Duration::from_millis(0);
+  let mut total_gis_paint_duration = std::time::Duration::from_millis(0);
+
   for sim_step_i in 0..simcontrol.num_steps {
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
     for i in 0..cl_kernels.len() {
       if let Some(k) = &cl_kernels[i].cl_device_kernel {
-
-        if args.verbose > 2 {
+        /*if args.verbose > 2 {
           println!("sim_step_i={} i={}", sim_step_i, i);
-        }
+        }*/
+
+        let kernel_exec_start = std::time::Instant::now();
 
         // Create a command_queue on the Context's device; 8 is a random guess at a good size
         let queue = opencl3::command_queue::CommandQueue::create_default_with_properties(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE, 0).expect("CommandQueue::create_default failed");
@@ -137,7 +142,10 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
         // Move data from Sim space to Kernel space; this queues blocking data writes to buffers, which are then placed into the kernel as arguments
         let mut events: Vec<opencl3::types::cl_event> = Vec::default();
+        let ld_to_kernel_start = std::time::Instant::now();
         let kernel_args = utils::ld_data_to_kernel_data(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &events)?;
+        let ld_to_kernel_end = std::time::Instant::now();
+        total_convert_overhead_duration += ld_to_kernel_end - ld_to_kernel_start;
 
         let mut kernel_arg_names: Vec<String> = vec![]; // Required to line up kernel_args[] indexes w/ data names
         if let Ok(argc) = k.num_args() {
@@ -191,7 +199,16 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         // &events to kernel_data_update_ld_data, where those events will be passed to all read functions.
         // The CL runtime will guarantee the processing has completed before data is read back out.
 
+        // Update: nvm we do wait b/c timing!
+        kernel_event.wait()?;
+
+        let kernel_exec_end = std::time::Instant::now();
+        total_kernel_execs_duration += kernel_exec_end - kernel_exec_start;
+
+        let kernel_to_ld_start = std::time::Instant::now();
         utils::kernel_data_update_ld_data(&context, &queue, &events, &kernel_args, &kernel_arg_names, &mut sim_data)?;
+        let kernel_to_ld_end = std::time::Instant::now();
+        total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
 
       }
       else {
@@ -202,6 +219,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
     // Finally possibly render a frame of data to gif_plot
     if sim_step_i % simcontrol.capture_step_period == 0 {
+      let render_start = std::time::Instant::now();
       // Render!
       gif_root.fill(&WHITE)?;
 
@@ -233,12 +251,19 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       }
 
       gif_root.present()?;
+
+      let render_end = std::time::Instant::now();
+      total_gis_paint_duration += render_end- render_start;
     }
 
   }
 
   let simulation_end = std::time::Instant::now();
   eprintln!("Simulation Time: {}", utils::duration_to_display_str(&(simulation_end - simulation_start)));
+
+  eprintln!("Simulation Time Kernel Exec: {}", utils::duration_to_display_str(&total_kernel_execs_duration));
+  eprintln!("Simulation Time Convert Overhead: {}", utils::duration_to_display_str(&total_convert_overhead_duration));
+  eprintln!("Simulation Time Paint: {}", utils::duration_to_display_str(&total_gis_paint_duration));
 
   // Write to simcontrol.output_data_file_path
   utils::write_ld_file(args, &sim_data, &simcontrol.output_data_file_path).await?;

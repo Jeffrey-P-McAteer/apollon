@@ -43,6 +43,7 @@ pub struct Args {
     pub num_steps: Option<u64>,
 
     /// Every N steps a single animation frame is recorded; this allows high-resolution simulations to run w/o creating massive+slow animation files by capturing eg every 10 simulation steps.
+    #[arg(long)]
     pub capture_step_period: Option<u64>,
 
 

@@ -220,13 +220,18 @@ pub async fn get_pref_device(lower_pref_name: &str) -> Result<opencl3::types::cl
     if lower_pref_name == "list" {
       for device_id in &gpu_device_ids {
         let d = opencl3::device::Device::new(*device_id);
-        if let Ok(name) = d.name() {
-          println!("{: <32} max_compute_units={: <3} max_clock_frequency={: <5} max_work_group_size={: <5}",
-            name,
-            d.max_compute_units().unwrap_or(0),
-            d.max_clock_frequency().unwrap_or(0),
-            d.max_work_group_size().unwrap_or(0)
-          );
+        match d.name() {
+          Ok(name) => {
+            println!("{: <32} max_compute_units={: <3} max_clock_frequency={: <5} max_work_group_size={: <5}",
+              name,
+              d.max_compute_units().unwrap_or(0),
+              d.max_clock_frequency().unwrap_or(0),
+              d.max_work_group_size().unwrap_or(0)
+            );
+          }
+          Err(e) => {
+            eprintln!("{:?}", e);
+          }
         }
       }
       return Err(Box::from("Listing GPUs complete"));

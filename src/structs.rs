@@ -714,3 +714,44 @@ impl CL_TaggedArgument {
 
 }
 
+
+
+
+#[derive(Debug)]
+pub struct LocatedError {
+    pub inner: Box<dyn std::error::Error>,
+    pub file: &'static str,
+    pub line: u32,
+    pub column: u32,
+}
+
+impl std::error::Error for LocatedError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&*self.inner)
+    }
+}
+
+impl std::fmt::Display for LocatedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}, {}:{}:{}", self.inner, self.file, self.line, self.column)
+    }
+}
+
+// The core idea: convenience macro to create the structure
+#[macro_export]
+macro_rules! eloc {
+    () => {
+        |e| crate::structs::LocatedError { inner: e.into(), file: file!(), line: line!(), column: column!() }
+    }
+}
+
+pub(crate) use eloc;
+
+
+
+
+
+
+
+
+

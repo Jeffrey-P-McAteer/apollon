@@ -637,106 +637,106 @@ pub fn kernel_data_update_ld_data(
     let arg_name = &kernel_arg_names[i];
     match &kernel_data[i] {
       structs::CL_TaggedArgument::Uint8Buffer(cl_uchar_buff) => {
-        if (cl_uchar_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_uchar_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_uchar_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_uchar,
             |a_uchar| structs::Value::Integer(a_uchar as i64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
       structs::CL_TaggedArgument::Uint16Buffer(cl_ushort_buff) => {
-        if (cl_ushort_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_ushort_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_ushort_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_ushort,
             |a_ushort| structs::Value::Integer(a_ushort as i64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
       structs::CL_TaggedArgument::Uint32Buffer(cl_uint_buff) => {
-        if (cl_uint_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_uint_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_uint_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_uint,
             |a_uint| structs::Value::Integer(a_uint as i64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
       structs::CL_TaggedArgument::Uint64Buffer(cl_ulong_buff) => {
-        if (cl_ulong_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_ulong_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_ulong_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_ulong,
             |a_ulong| structs::Value::Integer(a_ulong.try_into().expect("Failed to convert a u64 to a i64!"))
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
 
       structs::CL_TaggedArgument::Int8Buffer(cl_char_buff) => {
-        if (cl_char_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_char_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_char_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_char,
             |a_char| structs::Value::Integer(a_char as i64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
       structs::CL_TaggedArgument::Int16Buffer(cl_short_buff) => {
-        if (cl_short_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_short_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_short_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_short,
             |a_short| structs::Value::Integer(a_short as i64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
       structs::CL_TaggedArgument::Int32Buffer(cl_int_buff) => {
-        if (cl_int_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_int_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_int_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_int,
             |a_int| structs::Value::Integer(a_int as i64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
       structs::CL_TaggedArgument::Int64Buffer(cl_long_buff) => {
-        if (cl_long_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_long_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_long_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_long,
             |a_long| structs::Value::Integer(a_long as i64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
 
 
       structs::CL_TaggedArgument::FloatBuffer(cl_float_buff) => {
-        if (cl_float_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_float_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_float_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_float,
             |a_float| structs::Value::Double(a_float as f64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
       structs::CL_TaggedArgument::DoubleBuffer(cl_double_buff) => {
-        if (cl_double_buff.flags()? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
+        if (cl_double_buff.flags().map_err(structs::eloc!())? & opencl3::memory::CL_MEM_READ_WRITE) != 0 {
           // This is a write buffer, so we must read it back out.
           read_values_from_cl_buffer(
             context, queue, events, cl_double_buff, ld_data, arg_name,
             |an_int| an_int as opencl3::types::cl_double,
             |a_double| structs::Value::Double(a_double as f64)
-          )?;
+          ).map_err(structs::eloc!())?;
         }
       }
 

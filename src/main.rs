@@ -206,7 +206,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         total_kernel_execs_duration += kernel_exec_end - kernel_exec_start;
 
         let kernel_to_ld_start = std::time::Instant::now();
-        utils::kernel_data_update_ld_data(&context, &queue, &events, &kernel_args, &kernel_arg_names, &mut sim_data)?;
+        utils::kernel_data_update_ld_data(&args, &context, &queue, &events, &kernel_args, &kernel_arg_names, &mut sim_data)?;
         let kernel_to_ld_end = std::time::Instant::now();
         total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
 

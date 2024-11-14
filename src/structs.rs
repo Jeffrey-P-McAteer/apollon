@@ -723,6 +723,7 @@ pub struct LocatedError {
     pub file: &'static str,
     pub line: u32,
     pub column: u32,
+    pub addtl_msg: String,
 }
 
 impl std::error::Error for LocatedError {
@@ -733,7 +734,7 @@ impl std::error::Error for LocatedError {
 
 impl std::fmt::Display for LocatedError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}, {}:{}:{}", self.inner, self.file, self.line, self.column)
+        write!(f, "{} from {}:{}:{} ({})", self.inner, self.file, self.line, self.column, &self.addtl_msg)
     }
 }
 
@@ -741,8 +742,11 @@ impl std::fmt::Display for LocatedError {
 #[macro_export]
 macro_rules! eloc {
     () => {
-        |e| crate::structs::LocatedError { inner: e.into(), file: file!(), line: line!(), column: column!() }
-    }
+        |e| crate::structs::LocatedError { inner: e.into(), file: file!(), line: line!(), column: column!(), addtl_msg: String::new() }
+    };
+    ($msg:expr) => {
+        |e| crate::structs::LocatedError { inner: e.into(), file: file!(), line: line!(), column: column!(), addtl_msg: $msg }
+    };
 }
 
 pub(crate) use eloc;

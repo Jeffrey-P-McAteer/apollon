@@ -782,7 +782,7 @@ fn read_values_from_cl_buffer<T>(
   const STACK_BUFF_SIZE: usize = 8 * 1024;
 
   // Allocate buffer of size
-  let array_size = cl_values.size()? / std::mem::size_of::<T>();
+  let array_size = cl_values.size().map_err(structs::eloc!())? / std::mem::size_of::<T>();
 
   let mut ld_data_write_offset = 0;
   let mut cl_buff_read_offset = 0;
@@ -794,7 +794,7 @@ fn read_values_from_cl_buffer<T>(
 
   for i in (0..array_size).step_by(STACK_BUFF_SIZE) {
     // Read the next STACK_BUFF_SIZE items up to a max of aray_size
-    let unused_read_event = unsafe { queue.enqueue_read_buffer(cl_values, opencl3::types::CL_BLOCKING, cl_buff_read_offset, &mut stack_arr, &events)? };
+    let unused_read_event = unsafe { queue.enqueue_read_buffer(cl_values, opencl3::types::CL_BLOCKING, cl_buff_read_offset, &mut stack_arr, &events).map_err(structs::eloc!())? };
     cl_buff_read_offset += STACK_BUFF_SIZE;
     let num_items_read = if cl_buff_read_offset > array_size { array_size - (cl_buff_read_offset-STACK_BUFF_SIZE) } else { STACK_BUFF_SIZE };
 

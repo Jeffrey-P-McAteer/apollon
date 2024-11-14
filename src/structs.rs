@@ -563,11 +563,17 @@ fn serde_empty_map_str_valtype() -> HashMap<String, ValueType> { HashMap::<Strin
 impl CL_Kernel {
 
   pub fn load_program(&mut self, cl_ctx: &opencl3::context::Context) -> Result<(), Box<dyn std::error::Error>>  {
+    let mut cl_compiler_options = self.cl_program_compiler_options.clone();
+
+    if !cl_compiler_options.contains("-cl-kernel-arg-info") { // required to read arguments out of kernel
+      cl_compiler_options = format!("{} -cl-kernel-arg-info", &cl_compiler_options);
+    }
+
     self.cl_device_program = Some(
       opencl3::program::Program::create_and_build_from_source(
         &cl_ctx,
         &self.source,
-        &self.cl_program_compiler_options
+        &cl_compiler_options
       )?
     );
     if let Some(ref cl_device_program_ref) = self.cl_device_program {

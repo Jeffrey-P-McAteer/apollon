@@ -353,6 +353,9 @@ pub fn ld_data_to_kernel_data(
 
   let work_size = ld_data.len();
   if let Ok(argc) = k.num_args() {
+    if args.verbose > 1 {
+      eprintln!("[ ld_data_to_kernel_data ] argc = {}", argc);
+    }
     for arg_i in 0..argc {
       /*
       println!("args[{}] = {:?}, {:?}, {:?}, {:?}, {:?}", arg_i,
@@ -360,13 +363,17 @@ pub fn ld_data_to_kernel_data(
         k.get_arg_type_name(arg_i), k.get_arg_name(arg_i)
       );
       */
-      let is_pointer = k.get_arg_address_qualifier(arg_i).unwrap_or(0) == 4507;
-      let is_constant = k.get_arg_type_qualifier(arg_i).unwrap_or(0) == 1;
-      let type_name = k.get_arg_type_name(arg_i).unwrap_or(String::new());
+      let is_pointer = k.get_arg_address_qualifier(arg_i)? == 4507;
+      let is_constant = k.get_arg_type_qualifier(arg_i)? == 1;
+      let type_name = k.get_arg_type_name(arg_i)?;
       let type_name = type_name.trim_end_matches('*'); // Types like 'int*' end with a star, which we do not use b/c we have is_pointer.
-      let variable_name = k.get_arg_name(arg_i).unwrap_or(String::new());
+      let variable_name = k.get_arg_name(arg_i)?; //.unwrap_or(String::new());
       let variable_name_lowercase = variable_name.to_lowercase();
       let variable_name_uppercase = variable_name.to_uppercase();
+
+      if args.verbose > 1 {
+        eprintln!("[ ld_data_to_kernel_data ] k.get_arg_name({}) = {}", arg_i, &variable_name);
+      }
 
       if is_pointer {
 
@@ -541,7 +548,7 @@ pub fn ld_data_to_kernel_data(
 
         match value {
           None => {
-            println!("[ ERROR ] Cannot find variable {} simulation control file OR in {}. Please define a constant named {} or pass a value on the command line like --data-constant {}=<VALUE>", &variable_name, &sc.cl_kernels_file_path.display(), &variable_name, &variable_name);
+            println!("[ ERROR ] Cannot find variable '{}' in simulation control file OR in '{}'. Please define a constant named '{}' or pass a value on the command line like --data-constant {}=<VALUE>", &variable_name, &sc.cl_kernels_file_path.display(), &variable_name, &variable_name);
             panic!("Required constant not found in kernels.toml data_constants, or simcontrol.toml data_constants, or passed as --data-constant VAR=val");
           }
           Some(cl_tagged_value) => {

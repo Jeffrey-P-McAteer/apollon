@@ -811,6 +811,9 @@ fn read_values_from_cl_buffer<T>(
 
   for i in (0..array_len).step_by(STACK_BUFF_SIZE) {
     // Read the next STACK_BUFF_SIZE items up to a max of aray_size
+    if cli_args.verbose > 1 {
+      eprintln!("i = {} cl_buff_read_offset = {}", i, cl_buff_read_offset);
+    }
     let unused_read_event = unsafe { queue.enqueue_read_buffer(cl_values, opencl3::types::CL_BLOCKING, cl_buff_read_offset, &mut stack_arr, &events).map_err(structs::eloc!())? };
     cl_buff_read_offset += STACK_BUFF_SIZE;
     let num_items_read = if cl_buff_read_offset > array_len { array_len - (cl_buff_read_offset-STACK_BUFF_SIZE) } else { STACK_BUFF_SIZE };

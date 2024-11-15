@@ -734,7 +734,7 @@ impl std::error::Error for LocatedError {
 
 impl std::fmt::Display for LocatedError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} from {}:{}:{} ({})", self.inner, self.file, self.line, self.column, &self.addtl_msg)
+        write!(f, "{} from {}:{} ({})", self.inner, self.file, self.line, &self.addtl_msg)
     }
 }
 

@@ -353,9 +353,6 @@ pub fn ld_data_to_kernel_data(
 
   let work_size = ld_data.len();
   if let Ok(argc) = k.num_args() {
-    if args.verbose > 1 {
-      eprintln!("[ ld_data_to_kernel_data ] argc = {}", argc);
-    }
     for arg_i in 0..argc {
       /*
       println!("args[{}] = {:?}, {:?}, {:?}, {:?}, {:?}", arg_i,
@@ -370,10 +367,6 @@ pub fn ld_data_to_kernel_data(
       let variable_name = k.get_arg_name(arg_i)?; //.unwrap_or(String::new());
       let variable_name_lowercase = variable_name.to_lowercase();
       let variable_name_uppercase = variable_name.to_uppercase();
-
-      if args.verbose > 1 {
-        eprintln!("[ ld_data_to_kernel_data ] k.get_arg_name({}) = {}", arg_i, &variable_name);
-      }
 
       if is_pointer {
 
@@ -796,11 +789,6 @@ fn read_values_from_cl_buffer<T>(
   // Allocate buffer of size
   let array_len = cl_values.size().map_err(structs::eloc!())? / std::mem::size_of::<T>();
 
-  if cli_args.verbose > 1 {
-    eprintln!("cl_values.size() = {}, std::mem::size_of::<T>() = {}", cl_values.size().map_err(structs::eloc!())?, std::mem::size_of::<T>());
-    eprintln!("array_len = {}", array_len);
-  }
-
   let mut ld_data_write_offset = 0;
   let mut cl_buff_read_offset = 0;
 
@@ -814,9 +802,9 @@ fn read_values_from_cl_buffer<T>(
     if cli_args.verbose > 1 {
       eprintln!("i = {} cl_buff_read_offset = {}", i, cl_buff_read_offset);
     }
-    let unused_read_event = unsafe { queue.enqueue_read_buffer(cl_values, opencl3::types::CL_BLOCKING, cl_buff_read_offset, &mut stack_arr, &events).map_err(structs::eloc!())? };
+    let num_items_read = if cl_buff_read_offset+STACK_BUFF_SIZE > array_len { array_len - cl_buff_read_offset } else { STACK_BUFF_SIZE };
+    let unused_read_event = unsafe { queue.enqueue_read_buffer(cl_values, opencl3::types::CL_BLOCKING, cl_buff_read_offset, &mut stack_arr[0..num_items_read], &events).map_err(structs::eloc!())? };
     cl_buff_read_offset += STACK_BUFF_SIZE;
-    let num_items_read = if cl_buff_read_offset > array_len { array_len - (cl_buff_read_offset-STACK_BUFF_SIZE) } else { STACK_BUFF_SIZE };
 
     for j in 0..num_items_read {
       if ld_data[ld_data_write_offset].contains_key(ld_field_name) {

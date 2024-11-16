@@ -8,6 +8,27 @@ import json
 import time
 import shutil
 
+pkgs = os.path.join(tempfile.gettempdir(), 'simtest-pkgs')
+os.makedirs(pkgs, exist_ok=True)
+sys.path.append(pkgs)
+
+try:
+  import matplotlib.pyplot
+except:
+  subprocess.run([
+    sys.executable, '-m', 'pip', 'install', f'--target={pkgs}', 'matplotlib'
+  ])
+  import matplotlib.pyplot
+
+try:
+  import numpy
+except:
+  subprocess.run([
+    sys.executable, '-m', 'pip', 'install', f'--target={pkgs}', 'numpy'
+  ])
+  import numpy
+
+
 def run_one_test(num_entities, num_steps):
   sim_dir = os.path.join(tempfile.gettempdir(), f'sim_{num_entities}_entities_{num_steps}_steps')
   os.makedirs(sim_dir, exist_ok=True)
@@ -144,6 +165,27 @@ def main():
 
   print(json.dumps(num_entities_to_sim_duration_d, indent=2))
 
+  #data = [[1,1],[4,3],[8,3],[11,4],[10,7],[15,11],[16,12]]
+  graph_points = []
+  for entity_count in sorted(num_entities_to_sim_duration_d):
+    graph_points.append([
+      entity_count, num_entities_to_sim_duration_d[entity_count]
+    ])
+
+  x, y = zip(*graph_points)
+
+  fig, ax = matplotlib.pyplot.subplots()
+  ax.plot(x, y)
+
+  ax.set_xlabel('Entities Processed')
+  ax.set_ylabel('Seconds')
+  ax.set_title('Simulation run time / entities processed')
+
+  ax.ticklabel_format(useOffset=False, style='plain') # turn off scientific notation on axes
+  ax.yaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:,.0f}'))
+  ax.xaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:,.0f}'))
+
+  matplotlib.pyplot.show()
 
 
 

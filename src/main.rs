@@ -143,7 +143,10 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   for i in 0..cl_kernels.len() {
     if let Some(k) = &cl_kernels[i].cl_device_kernel {
 
+      let ld_to_kernel_start = std::time::Instant::now();
       let kernel_args = utils::ld_data_to_kernel_data_named(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &sim_events_cl)?;
+      let ld_to_kernel_end = std::time::Instant::now();
+      total_convert_overhead_duration += ld_to_kernel_end - ld_to_kernel_start;
 
       let mut this_kernel_ak_indicies: Vec<usize> = vec![];
 
@@ -198,38 +201,16 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
     for i in 0..cl_kernels.len() {
       if let Some(k) = &cl_kernels[i].cl_device_kernel {
-        /*if args.verbose > 2 {
-          println!("sim_step_i={} i={}", sim_step_i, i);
-        }*/
 
         let kernel_exec_start = std::time::Instant::now();
-
-        // Create a command_queue on the Context's device; 8 is a random guess at a good size
-        let queue = opencl3::command_queue::CommandQueue::create_default_with_properties(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE, 0).expect("CommandQueue::create_default failed");
-        //let queue = opencl3::command_queue::CommandQueue::create_default(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE).expect("CommandQueue::create_default failed");
-
-        // Move data from Sim space to Kernel space; this queues blocking data writes to buffers, which are then placed into the kernel as arguments
-        // let mut events: Vec<opencl3::types::cl_event> = Vec::default();
-        let ld_to_kernel_start = std::time::Instant::now();
-        let kernel_args = utils::ld_data_to_kernel_data(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &sim_events_cl)?;
-        let ld_to_kernel_end = std::time::Instant::now();
-        total_convert_overhead_duration += ld_to_kernel_end - ld_to_kernel_start;
-
-        let mut kernel_arg_names: Vec<String> = vec![]; // Required to line up kernel_args[] indexes w/ data names
-        if let Ok(argc) = k.num_args() {
-          for arg_i in 0..argc {
-            kernel_arg_names.push(
-              k.get_arg_name(arg_i).unwrap_or(String::new())
-            );
-          }
-        }
 
         // Allocate a runtime kernel & feed it inputs; we use RefCell here b/c otherwise inner-loop lifetimes would kill us
         let mut exec_kernel = opencl3::kernel::ExecuteKernel::new(&k);
 
-        for arg in kernel_args.iter() {
+        for aka_idx in all_kernel_arg_indicies[i].iter() {
+          let arg = &all_kernel_args[*aka_idx].clone();
           unsafe {
-            match arg {
+            match arg.tagged_argument.borrow() {
               structs::CL_TaggedArgument::Uint8Buffer(a)  => {let exec_kernel = exec_kernel.set_arg(a);},
               structs::CL_TaggedArgument::Uint16Buffer(a) => {let exec_kernel = exec_kernel.set_arg(a);},
               structs::CL_TaggedArgument::Uint32Buffer(a) => {let exec_kernel = exec_kernel.set_arg(a);},
@@ -275,10 +256,11 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         let kernel_exec_end = std::time::Instant::now();
         total_kernel_execs_duration += kernel_exec_end - kernel_exec_start;
 
-        let kernel_to_ld_start = std::time::Instant::now();
+/*        let kernel_to_ld_start = std::time::Instant::now();
         utils::kernel_data_update_ld_data(&args, &context, &queue, &sim_events_cl, &kernel_args, &kernel_arg_names, &mut sim_data)?;
         let kernel_to_ld_end = std::time::Instant::now();
         total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
+*/
 
       }
       else {
@@ -294,6 +276,12 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
     // Finally possibly render a frame of data to gif_plot
     if sim_step_i % simcontrol.capture_step_period == 0 {
+
+      let kernel_to_ld_start = std::time::Instant::now();
+      utils::kernel_data_update_ld_data_named(&args, &context, &queue, &sim_events_cl, &all_kernel_args, &mut sim_data)?;
+      let kernel_to_ld_end = std::time::Instant::now();
+      total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
+
       let render_start = std::time::Instant::now();
       // Render!
       gif_root.fill(&WHITE)?;

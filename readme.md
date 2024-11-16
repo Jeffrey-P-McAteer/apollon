@@ -6,7 +6,7 @@ given an initial state, state change functions, and some definition of a time do
 
 # Example Sim Output
 
-![Example](example.mp4)
+![Example](example.mov)
 
 # Testing
 

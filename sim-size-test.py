@@ -6,6 +6,7 @@ import random
 import traceback
 import json
 import time
+import shutil
 
 def run_one_test(num_entities, num_steps):
   sim_dir = os.path.join(tempfile.gettempdir(), f'sim_{num_entities}_entities_{num_steps}_steps')

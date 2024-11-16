@@ -162,7 +162,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
             this_kernel_ak_indicies.push(akai_idx);
           }
           None => {
-            // New name,type must be added to
+            // New name,type must be added to all_kernel_args.
+            // Calling .clone() will make the interior .tagged_argument read-only until kernel_args is dropped at the end of this cl_kernels[i] loop iteration.
+            this_kernel_ak_indicies.push(all_kernel_args.len());
             all_kernel_args.push(
               kernel_args[kai].clone()
             );
@@ -174,6 +176,17 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       all_kernel_arg_indicies.push(this_kernel_ak_indicies);
 
     }
+  }
+
+  // Inspect & Panic if any of the interior .tagged_argument Arcs are not mutable; we require these to be mutable downstairs.
+  for akai in 0..all_kernel_args.len() {
+    if std::sync::Arc::<structs::CL_TaggedArgument>::get_mut(&mut all_kernel_args[akai].tagged_argument).is_none() {
+      eprintln!("Logic error! all_kernel_args[{}].tagged_argument was supposed to be mutable, but is not!", akai);
+      panic!("Logic error!");
+    }
+  }
+  if args.verbose > 0 {
+    eprintln!("all_kernel_arg_indicies = {:?}", all_kernel_arg_indicies);
   }
 
   // Finally, we must create & inject "Conversion Kernels" into the stream where we have

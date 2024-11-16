@@ -299,18 +299,10 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         //let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
         //gif_root.draw(&elm)?;
         let (historic_x, historic_y) = (*historic_x as f32, *historic_y as f32);
-        let mut pb = raqote::PathBuilder::new();
-        pb.move_to(historic_x, historic_y);
-        pb.line_to(historic_x, historic_y);
-        pb.line_to(historic_x+1.0f32, historic_y+1.0f32);
-        let path = pb.finish();
-        plotter_dt.stroke(
-          &path,
+        plotter_dt.fill_rect(
+          historic_x, historic_y,
+          1.0f32, 1.0f32,
           &plotter_dt_solid_black,
-          &raqote::StrokeStyle {
-              width: 1.0,
-              ..raqote::StrokeStyle::default()
-          },
           &plotter_dt_default_drawops
         );
       }
@@ -323,18 +315,10 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
             // Render!
             let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
 
-            let mut pb = raqote::PathBuilder::new();
-            pb.move_to(x_f32, y_f32);
-            pb.line_to(x_f32, y_f32);
-            pb.line_to(x_f32+1.0f32, y_f32+1.0f32);
-            let path = pb.finish();
-            plotter_dt.stroke(
-              &path,
+            plotter_dt.fill_rect(
+              x_f32-1.0f32, y_f32-1.0f32,
+              3.0f32, 3.0f32,
               &sim_data_colors[row_i],
-              &raqote::StrokeStyle {
-                  width: 3.0,
-                  ..raqote::StrokeStyle::default()
-              },
               &plotter_dt_default_drawops
             );
 
@@ -357,13 +341,13 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       let sim_step_txt = format!("{:_>9}", sim_step_i);
 
       plotter_dt.draw_text(
-          &plotter_dt_font,
-          15.0,
-          &sim_step_txt,
-          raqote::Point::new(plotter_dt_f32width - 72.0f32, plotter_dt_f32height - 16.0f32),
-          &plotter_dt_solid_black,
-          &plotter_dt_default_drawops
-        );
+        &plotter_dt_font,
+        15.0,
+        &sim_step_txt,
+        raqote::Point::new(plotter_dt_f32width - 86.0f32, plotter_dt_f32height - 16.0f32),
+        &plotter_dt_solid_black,
+        &plotter_dt_default_drawops
+      );
 
       // Finally add plotter_dt frame to video stream
       let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian

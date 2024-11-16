@@ -196,6 +196,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   // Variable A of type A followed by Variable A of type B in all_kernel_args.
   // ^^ TODO
 
+  // Allocate shared GUI render mem
+  let sans_serif_font = ("sans-serif", 15.0).into_font();
+  let monospace_font = ("monospace", 14.0).into_font();
 
   for sim_step_i in 0..simcontrol.num_steps {
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
@@ -304,7 +307,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
                 + Text::new(
                     label_s,
                     (10, 0),
-                    ("sans-serif", 15.0).into_font(),
+                    sans_serif_font.clone(),
               );
             gif_root.draw(&elm)?;
 
@@ -321,7 +324,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
               (simcontrol.output_animation_width - 72) as i32,
               (simcontrol.output_animation_height - 16) as i32
             ),
-            ("monospace", 14.0).into_font());
+            monospace_font.clone() );
       gif_root.draw(&elm)?;
 
 

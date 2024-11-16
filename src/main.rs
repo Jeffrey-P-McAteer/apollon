@@ -273,7 +273,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
 
     // Every N or so steps trim the events vector on the assumption some have completed
-    if sim_step_i % 10 == 0 {
+    if sim_step_i % 20 == 0 {
       utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl)?;
     }
 

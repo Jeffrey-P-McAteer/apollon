@@ -89,7 +89,10 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let encoder_width_usize = simcontrol.output_animation_width as usize;
   let encoder_height_usize = simcontrol.output_animation_height as usize;
   let settings = video_rs::encode::Settings::preset_h264_yuv420p(encoder_width_usize, encoder_height_usize, false);
-  let mut encoder = video_rs::encode::Encoder::new(simcontrol.output_animation_file_path.clone(), settings).map_err(structs::eloc!())?;
+  let mut encoder: Option<video_rs::encode::Encoder> = None;
+  if !(simcontrol.output_animation_file_path.to_string_lossy() == "/dev/null" || simcontrol.output_animation_file_path.to_string_lossy() == "NUL") {
+    encoder = Some(video_rs::encode::Encoder::new(simcontrol.output_animation_file_path.clone(), settings).map_err(structs::eloc!())?);
+  }
   let anim_frame_duration = video_rs::time::Time::from_secs_f64(simcontrol.output_animation_frame_delay as f64 / 1000.0f64);
   let mut anim_t_position = video_rs::time::Time::zero();
 
@@ -362,7 +365,10 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
       let ndarr_data = ndarray::Array3::from_shape_vec((encoder_height_usize, encoder_width_usize, 3), bgr_px_buff).map_err(structs::eloc!())?;
 
-      encoder.encode(&ndarr_data, anim_t_position).map_err(structs::eloc!())?;
+      if let Some(ref mut encoder) = encoder {
+        encoder.encode(&ndarr_data, anim_t_position).map_err(structs::eloc!())?;
+      }
+
 
       anim_t_position = anim_t_position.aligned_with(anim_frame_duration).add();
 
@@ -396,7 +402,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
 
   // Finishes writing to disk
-  encoder.finish()?;
+  if let Some(ref mut encoder) = encoder {
+    encoder.finish().map_err(structs::eloc!())?;
+  }
 
 
   let simulation_end = std::time::Instant::now();

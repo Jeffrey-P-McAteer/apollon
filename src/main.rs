@@ -282,98 +282,97 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
     // Finally possibly render a frame of data to gif_plot
     if sim_step_i % simcontrol.capture_step_period == 0 {
+      if let Some(ref mut encoder) = encoder {
 
-      let kernel_to_ld_start = std::time::Instant::now();
-      utils::kernel_data_update_ld_data_named(&args, &context, &queue, &sim_events_cl, &all_kernel_args, &mut sim_data).map_err(structs::eloc!())?;
-      let kernel_to_ld_end = std::time::Instant::now();
-      total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
+        let kernel_to_ld_start = std::time::Instant::now();
+        utils::kernel_data_update_ld_data_named(&args, &context, &queue, &sim_events_cl, &all_kernel_args, &mut sim_data).map_err(structs::eloc!())?;
+        let kernel_to_ld_end = std::time::Instant::now();
+        total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
 
-      let render_start = std::time::Instant::now();
-      // Render!
+        let render_start = std::time::Instant::now();
+        // Render!
 
-      plotter_dt.fill_rect(
-        0.0f32, 0.0f32, plotter_dt_f32width, plotter_dt_f32height,
-        &plotter_dt_solid_white,
-        &plotter_dt_default_drawops
-      );
-
-      // Render entity histories as small dots
-      for (historic_x, historic_y) in anim_point_history.iter() {
-        //let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
-        //gif_root.draw(&elm)?;
-        let (historic_x, historic_y) = (*historic_x as f32, *historic_y as f32);
         plotter_dt.fill_rect(
-          historic_x, historic_y,
-          1.0f32, 1.0f32,
+          0.0f32, 0.0f32, plotter_dt_f32width, plotter_dt_f32height,
+          &plotter_dt_solid_white,
+          &plotter_dt_default_drawops
+        );
+
+        // Render entity histories as small dots
+        for (historic_x, historic_y) in anim_point_history.iter() {
+          //let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
+          //gif_root.draw(&elm)?;
+          let (historic_x, historic_y) = (*historic_x as f32, *historic_y as f32);
+          plotter_dt.fill_rect(
+            historic_x, historic_y,
+            1.0f32, 1.0f32,
+            &plotter_dt_solid_black,
+            &plotter_dt_default_drawops
+          );
+        }
+
+        // For each entity, if an gis_x_attr_name and gis_y_attr_name coordinate are known and are numeric,
+        // render a dot with a label from gis_name_attr
+        for row_i in 0..sim_data.len() {
+          if let (Some(x_val), Some(y_val)) = (sim_data[row_i].get(&simcontrol.gis_x_attr_name), sim_data[row_i].get(&simcontrol.gis_y_attr_name)) {
+            if let (Ok(x_f32), Ok(y_f32)) = (x_val.to_f32(), y_val.to_f32()) {
+              // Render!
+              let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
+
+              plotter_dt.fill_rect(
+                x_f32-1.0f32, y_f32-1.0f32,
+                3.0f32, 3.0f32,
+                &sim_data_colors[row_i],
+                &plotter_dt_default_drawops
+              );
+
+              // Write text at same y but x+8px to right
+              plotter_dt.draw_text(
+                &plotter_dt_font,
+                15.0,
+                &label_s,
+                raqote::Point::new(x_f32 + 8.0f32, y_f32),
+                &plotter_dt_solid_black,
+                &plotter_dt_default_drawops
+              );
+
+              anim_point_history.push( (x_f32, y_f32) );
+            }
+          }
+        }
+
+        // Draw sim step in lower-left corner
+        let sim_step_txt = format!("{:_>9}", sim_step_i);
+
+        plotter_dt.draw_text(
+          &plotter_dt_font,
+          15.0,
+          &sim_step_txt,
+          raqote::Point::new(plotter_dt_f32width - 86.0f32, plotter_dt_f32height - 16.0f32),
           &plotter_dt_solid_black,
           &plotter_dt_default_drawops
         );
-      }
 
-      // For each entity, if an gis_x_attr_name and gis_y_attr_name coordinate are known and are numeric,
-      // render a dot with a label from gis_name_attr
-      for row_i in 0..sim_data.len() {
-        if let (Some(x_val), Some(y_val)) = (sim_data[row_i].get(&simcontrol.gis_x_attr_name), sim_data[row_i].get(&simcontrol.gis_y_attr_name)) {
-          if let (Ok(x_f32), Ok(y_f32)) = (x_val.to_f32(), y_val.to_f32()) {
-            // Render!
-            let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
+        // Finally add plotter_dt frame to video stream
+        let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian
 
-            plotter_dt.fill_rect(
-              x_f32-1.0f32, y_f32-1.0f32,
-              3.0f32, 3.0f32,
-              &sim_data_colors[row_i],
-              &plotter_dt_default_drawops
-            );
-
-            // Write text at same y but x+8px to right
-            plotter_dt.draw_text(
-              &plotter_dt_font,
-              15.0,
-              &label_s,
-              raqote::Point::new(x_f32 + 8.0f32, y_f32),
-              &plotter_dt_solid_black,
-              &plotter_dt_default_drawops
-            );
-
-            anim_point_history.push( (x_f32, y_f32) );
-          }
+        let mut bgr_px_buff: Vec<u8> = vec![];
+        bgr_px_buff.reserve((plotter_frame_pixel_data.len() * 3) / (plotter_frame_pixel_data.len() * 4) ); // allocate 75% of the space for the BGR values
+        for dt_px_i in (0..plotter_frame_pixel_data.len()).step_by(4) {
+          bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i]);
+          bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+1]);
+          bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+2]);
         }
-      }
 
-      // Draw sim step in lower-left corner
-      let sim_step_txt = format!("{:_>9}", sim_step_i);
+        let ndarr_data = ndarray::Array3::from_shape_vec((encoder_height_usize, encoder_width_usize, 3), bgr_px_buff).map_err(structs::eloc!())?;
 
-      plotter_dt.draw_text(
-        &plotter_dt_font,
-        15.0,
-        &sim_step_txt,
-        raqote::Point::new(plotter_dt_f32width - 86.0f32, plotter_dt_f32height - 16.0f32),
-        &plotter_dt_solid_black,
-        &plotter_dt_default_drawops
-      );
-
-      // Finally add plotter_dt frame to video stream
-      let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian
-
-      let mut bgr_px_buff: Vec<u8> = vec![];
-      bgr_px_buff.reserve((plotter_frame_pixel_data.len() * 3) / (plotter_frame_pixel_data.len() * 4) ); // allocate 75% of the space for the BGR values
-      for dt_px_i in (0..plotter_frame_pixel_data.len()).step_by(4) {
-        bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i]);
-        bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+1]);
-        bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+2]);
-      }
-
-      let ndarr_data = ndarray::Array3::from_shape_vec((encoder_height_usize, encoder_width_usize, 3), bgr_px_buff).map_err(structs::eloc!())?;
-
-      if let Some(ref mut encoder) = encoder {
         encoder.encode(&ndarr_data, anim_t_position).map_err(structs::eloc!())?;
+
+        anim_t_position = anim_t_position.aligned_with(anim_frame_duration).add();
+
+        let render_end = std::time::Instant::now();
+        total_gis_paint_duration += render_end- render_start;
       }
-
-
-      anim_t_position = anim_t_position.aligned_with(anim_frame_duration).add();
-
-      let render_end = std::time::Instant::now();
-      total_gis_paint_duration += render_end- render_start;
     }
 
   }

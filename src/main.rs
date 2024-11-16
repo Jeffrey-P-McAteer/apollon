@@ -15,6 +15,8 @@ use num_format::{Locale, ToFormattedString};
 use plotters::prelude::*;
 use plotters::coord::types::RangedCoordf32;
 
+use opencv::prelude::*;
+
 pub mod structs;
 pub mod utils;
 
@@ -84,14 +86,30 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let kernel_compile_end = std::time::Instant::now();
   eprintln!("CL Kernel Compile Time: {}", utils::duration_to_display_str(&(kernel_compile_end - kernel_compile_start)));
 
-  let gif_plot_backend = BitMapBackend::gif(
-    simcontrol.output_animation_file_path.clone(),
-    (simcontrol.output_animation_width, simcontrol.output_animation_height),
-    simcontrol.output_animation_frame_delay
+  let mut plotter = opencv::videoio::VideoWriter::new(
+    simcontrol.output_animation_file_path.to_str().ok_or("output_animation_file_path is not a utf-8 string!")?,
+    // opencv::videoio::VideoWriter::fourcc('M', 'J', 'P', 'G'),
+    // opencv::videoio::VideoWriter::fourcc('a', 'v', 'c', '1')?,
+    //opencv::videoio::VideoWriter::fourcc('h', '2', '6', '4')?,
+    opencv::videoio::VideoWriter::fourcc('X', '2', '6', '4')?,
+    (1000 / std::cmp::max(simcontrol.output_animation_frame_delay, 1)).into(),
+    opencv::core::Size { width: simcontrol.output_animation_width as i32,  height: simcontrol.output_animation_height as i32 },
+    true
   )?;
-  let gif_root = gif_plot_backend.into_drawing_area();
+  let mut plotter_dt = raqote::DrawTarget::new(simcontrol.output_animation_width as i32, simcontrol.output_animation_height as i32);
+  let plotter_dt_f32width = simcontrol.output_animation_width as f32;
+  let plotter_dt_f32height = simcontrol.output_animation_height as f32;
+  let plotter_dt_solid_white = raqote::Source::Solid(raqote::SolidSource::from_unpremultiplied_argb(0xff, 255, 255, 255));
+  let plotter_dt_solid_black = raqote::Source::Solid(raqote::SolidSource::from_unpremultiplied_argb(0xff, 0,     0,   0));
+  let plotter_dt_default_drawops = raqote::DrawOptions::new();
+  let plotter_dt_font_bytes = include_bytes!("Courier_New.ttf");
+  let plotter_ft_font_typed = std::sync::Arc::new(plotter_dt_font_bytes.to_vec());
+  let plotter_dt_font = <font_kit::loaders::freetype::Font as font_kit::loader::Loader>::from_bytes(
+    plotter_ft_font_typed, 0
+  )?;
 
-  let mut gif_point_history: Vec<(i32, i32)> = vec![];
+
+  let mut anim_point_history: Vec<(f32, f32)> = vec![];
 
   let simulation_start = std::time::Instant::now();
 
@@ -102,24 +120,25 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   // For performance reasons we pre-allocate all entity colors here and re-use
   // when plotting data. This means there will be NO capability to change an entity color in the middle of
   // a sim; and if there were I'd want to provide the API as an "index into known colors" anyhow.
-  let mut sim_data_colors: Vec<plotters::style::RGBColor> = vec![];
+  let mut sim_data_colors: Vec<raqote::Source> = vec![];
   for row in sim_data.iter() {
     if let Some(str_val) = row.get(&simcontrol.gis_color_attr) {
       match csscolorparser::parse(str_val.to_string().as_str()) {
         Ok(css_color_obj) => {
           let components = css_color_obj.to_rgba8();
-          sim_data_colors.push( plotters::style::RGBColor(components[0], components[1], components[2]) );
+          //sim_data_colors.push( plotters::style::RGBColor(components[0], components[1], components[2]) );
+          sim_data_colors.push( raqote::Source::Solid(raqote::SolidSource::from_unpremultiplied_argb(0xff, components[0], components[1], components[2])) );
         }
         Err(e) => {
           if args.verbose > 0 {
             eprintln!("{:?}", e);
           }
-         sim_data_colors.push(plotters::style::colors::BLACK);
+         sim_data_colors.push(plotter_dt_solid_black.clone());
         }
       }
     }
     else {
-       sim_data_colors.push(plotters::style::colors::BLACK);
+       sim_data_colors.push(plotter_dt_solid_black.clone());
     }
   }
 
@@ -197,8 +216,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   // ^^ TODO
 
   // Allocate shared GUI render mem
-  let sans_serif_font = ("sans-serif", 15.0).into_font();
-  let monospace_font = ("monospace", 14.0).into_font();
+  //let sans_serif_font = ("sans-serif", 15.0).into_font();
+  //let monospace_font = ("monospace", 14.0).into_font();
 
   for sim_step_i in 0..simcontrol.num_steps {
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
@@ -287,48 +306,106 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
       let render_start = std::time::Instant::now();
       // Render!
-      gif_root.fill(&WHITE)?;
+
+      plotter_dt.fill_rect(
+        0.0f32, 0.0f32, plotter_dt_f32width, plotter_dt_f32height,
+        &plotter_dt_solid_white,
+        &plotter_dt_default_drawops
+      );
+
+      //gif_root.fill(&WHITE)?;
 
       // Render entity histories as small dots
-      for (historic_x, historic_y) in gif_point_history.iter() {
-        let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
-        gif_root.draw(&elm)?;
+      for (historic_x, historic_y) in anim_point_history.iter() {
+        //let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
+        //gif_root.draw(&elm)?;
+        let (historic_x, historic_y) = (*historic_x as f32, *historic_y as f32);
+        let mut pb = raqote::PathBuilder::new();
+        pb.move_to(historic_x, historic_y);
+        pb.line_to(historic_x, historic_y);
+        let path = pb.finish();
+        plotter_dt.stroke(
+          &path,
+          &plotter_dt_solid_black,
+          &raqote::StrokeStyle {
+              width: 1.0,
+              ..raqote::StrokeStyle::default()
+          },
+          &plotter_dt_default_drawops
+        );
       }
 
       // For each entity, if an gis_x_attr_name and gis_y_attr_name coordinate are known and are numeric,
       // render a dot with a label from gis_name_attr
       for row_i in 0..sim_data.len() {
         if let (Some(x_val), Some(y_val)) = (sim_data[row_i].get(&simcontrol.gis_x_attr_name), sim_data[row_i].get(&simcontrol.gis_y_attr_name)) {
-          if let (Ok(x_i32), Ok(y_i32)) = (x_val.to_i32(), y_val.to_i32()) {
+          if let (Ok(x_f32), Ok(y_f32)) = (x_val.to_f32(), y_val.to_f32()) {
             // Render!
             let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
-            let elm = EmptyElement::at((x_i32, y_i32))
+            /*let elm = EmptyElement::at((x_i32, y_i32))
                 + Circle::new((0, 0), 2, ShapeStyle::from(&sim_data_colors[row_i]).filled())
                 + Text::new(
                     label_s,
                     (10, 0),
                     sans_serif_font.clone(),
-              );
-            gif_root.draw(&elm)?;
+              );*/
+            //gif_root.draw(&elm)?;
+            let mut pb = raqote::PathBuilder::new();
+            pb.move_to(x_f32, y_f32);
+            pb.line_to(x_f32, y_f32);
+            let path = pb.finish();
+            plotter_dt.stroke(
+              &path,
+              &sim_data_colors[row_i],
+              &raqote::StrokeStyle {
+                  width: 2.0,
+                  ..raqote::StrokeStyle::default()
+              },
+              &plotter_dt_default_drawops
+            );
 
-            gif_point_history.push( (x_i32, y_i32) );
+            // Write text at same y but x+8px to right
+            plotter_dt.draw_text(
+              &plotter_dt_font,
+              15.0,
+              &label_s,
+              raqote::Point::new(x_f32 + 8.0f32, y_f32),
+              &plotter_dt_solid_black,
+              &plotter_dt_default_drawops
+            );
+
+            anim_point_history.push( (x_f32, y_f32) );
           }
         }
       }
 
       // Draw sim step in lower-left corner
       let sim_step_txt = format!("{:_>9}", sim_step_i);
-      let elm = Text::new(
+      /*let elm = Text::new(
             sim_step_txt,
             (
               (simcontrol.output_animation_width - 72) as i32,
               (simcontrol.output_animation_height - 16) as i32
             ),
-            monospace_font.clone() );
-      gif_root.draw(&elm)?;
+            monospace_font.clone() );*/
+      //gif_root.draw(&elm)?;
 
+      plotter_dt.draw_text(
+          &plotter_dt_font,
+          15.0,
+          &sim_step_txt,
+          raqote::Point::new(plotter_dt_f32width - 72.0f32, plotter_dt_f32height - 16.0f32),
+          &plotter_dt_solid_black,
+          &plotter_dt_default_drawops
+        );
 
-      gif_root.present()?;
+      //gif_root.present()?;
+
+      // Finally add plotter_dt frame to video stream
+      let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian
+
+      plotter.write(&plotter_frame_pixel_data)?;
+
 
       let render_end = std::time::Instant::now();
       total_gis_paint_duration += render_end- render_start;
@@ -359,7 +436,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
   }
 
-
+  // Finishes writing to disk
+  plotter.release()?;
 
 
   let simulation_end = std::time::Instant::now();

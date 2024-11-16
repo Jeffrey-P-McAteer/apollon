@@ -126,6 +126,10 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let mut total_convert_overhead_duration = std::time::Duration::from_millis(0);
   let mut total_gis_paint_duration = std::time::Duration::from_millis(0);
 
+  // Both vectors must be kepy in-sync; we keep sim_events_cl so we can rapidly pass a pointer to always-valid CL event structures
+  let mut sim_events: Vec<opencl3::event::Event> = vec![];
+  let mut sim_events_cl: Vec<opencl3::types::cl_event> = vec![];
+
   for sim_step_i in 0..simcontrol.num_steps {
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
     for i in 0..cl_kernels.len() {
@@ -141,9 +145,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         //let queue = opencl3::command_queue::CommandQueue::create_default(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE).expect("CommandQueue::create_default failed");
 
         // Move data from Sim space to Kernel space; this queues blocking data writes to buffers, which are then placed into the kernel as arguments
-        let mut events: Vec<opencl3::types::cl_event> = Vec::default();
+        // let mut events: Vec<opencl3::types::cl_event> = Vec::default();
         let ld_to_kernel_start = std::time::Instant::now();
-        let kernel_args = utils::ld_data_to_kernel_data(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &events)?;
+        let kernel_args = utils::ld_data_to_kernel_data(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &sim_events_cl)?;
         let ld_to_kernel_end = std::time::Instant::now();
         total_convert_overhead_duration += ld_to_kernel_end - ld_to_kernel_start;
 
@@ -193,20 +197,22 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         // Setup command queue
         let mut kernel_event = unsafe { exec_kernel.enqueue_nd_range(&queue)? };
 
-        events.push(kernel_event.get());
+        // Safety: both vectors increase at same time
+        sim_events_cl.push(kernel_event.get());
+        sim_events.push(kernel_event);
 
         // Kernel is now running, we do NOT wait for processing to finish. Instead we pass
         // &events to kernel_data_update_ld_data, where those events will be passed to all read functions.
         // The CL runtime will guarantee the processing has completed before data is read back out.
 
         // Update: nvm we do wait b/c timing!
-        kernel_event.wait()?;
+        //kernel_event.wait()?;
 
         let kernel_exec_end = std::time::Instant::now();
         total_kernel_execs_duration += kernel_exec_end - kernel_exec_start;
 
         let kernel_to_ld_start = std::time::Instant::now();
-        utils::kernel_data_update_ld_data(&args, &context, &queue, &events, &kernel_args, &kernel_arg_names, &mut sim_data)?;
+        utils::kernel_data_update_ld_data(&args, &context, &queue, &sim_events_cl, &kernel_args, &kernel_arg_names, &mut sim_data)?;
         let kernel_to_ld_end = std::time::Instant::now();
         total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
 
@@ -215,6 +221,11 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         eprintln!("[ Fatal Error ] Kernel {} does not have a cl_device_kernel! Inspect hardware & s/w to ensure kernels compile when loaded.", cl_kernels[i].name);
         return Ok(());
       }
+    }
+
+    // Every N or so steps trim the events vector on the assumption some have completed
+    if sim_step_i % 10 == 0 {
+      utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl)?;
     }
 
     // Finally possibly render a frame of data to gif_plot
@@ -269,6 +280,32 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
 
   }
+
+
+  if sim_events.len() > 0 {
+    loop {
+      if args.verbose > 0 {
+        eprintln!("Waiting for {} events to complete...", sim_events.len());
+      }
+
+      for wait_i in 0..8 {
+        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+
+        utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl)?;
+
+        if sim_events.len() < 1 {
+          break;
+        }
+      }
+      if sim_events.len() < 1 {
+        eprintln!("All sim events complete!");
+        break;
+      }
+    }
+  }
+
+
+
 
   let simulation_end = std::time::Instant::now();
   eprintln!("Simulation Time: {}", utils::duration_to_display_str(&(simulation_end - simulation_start)));

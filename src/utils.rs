@@ -846,3 +846,62 @@ pub fn duration_to_display_str(d: &std::time::Duration) -> String {
 
 
 
+pub fn trim_completed_events(
+  cli_args: &structs::Args,
+  sim_events: &mut Vec<opencl3::event::Event>,
+  sim_events_cl: &mut Vec<opencl3::types::cl_event>,
+) -> Result<(), Box<dyn std::error::Error>>
+{
+
+  let mut events_to_remove = vec![];
+
+  for evt_i in 0..sim_events.len() {
+    match sim_events[evt_i].command_execution_status() {
+      Ok(status) => {
+        if status.0  == opencl3::event::CL_COMPLETE {
+          events_to_remove.push(evt_i);
+        }
+      }
+      Err(e) => {
+        if cli_args.verbose > 0 {
+          eprintln!("{:?}", e);
+        }
+      }
+    }
+  }
+
+  // We special case if ALL events are complete and simply truncate both lists
+  if sim_events.len() == events_to_remove.len() {
+    sim_events_cl.clear();
+    sim_events.clear();
+    return Ok(());
+  }
+
+  // Measuring done, remove all indexes in events_to_remove;
+  // swap_remove does not alter indexes of items at X+1 -> N,
+  // but it does invalidate the index of the last element!
+  // Because of this we do NOT remove indicies > sim_events.len() - events_to_remove.len()
+  // Elements marked for removal at the _end_ are expected to become events at the beginning + removed in later passes.
+  let last_allowed_idx_to_rm = std::cmp::max(
+    sim_events.len() - events_to_remove.len(),
+    1
+  );
+
+  if cli_args.verbose > 1 {
+    eprintln!("last_allowed_idx_to_rm = {}", last_allowed_idx_to_rm);
+    eprintln!("sim_events_cl = {:?}", sim_events_cl);
+    eprintln!("events_to_remove = {:?}", events_to_remove);
+  }
+  for idx_to_rm in events_to_remove.iter() {
+    let idx_to_rm = *idx_to_rm;
+    if idx_to_rm < last_allowed_idx_to_rm {
+      sim_events_cl.swap_remove(idx_to_rm);
+      sim_events.swap_remove(idx_to_rm);
+    }
+  }
+
+
+  Ok(())
+}
+
+

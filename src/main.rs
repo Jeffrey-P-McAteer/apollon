@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
 async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Error>> {
   let total_start = std::time::Instant::now();
 
-  let mut simcontrol = utils::read_simcontrol_file(&args.simcontrol_file_path).await?;
+  let mut simcontrol = utils::read_simcontrol_file(&args.simcontrol_file_path).await.map_err(structs::eloc!())?;
   // Overwrite any simcontrol args w/ cli-specified args
   utils::inplace_update_simcontrol_from_args(&mut simcontrol, args);
   let simcontrol = simcontrol;
@@ -55,7 +55,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
 
 
-  let pref_dev_id = utils::get_pref_device(&simcontrol.preferred_gpu_name.to_lowercase()).await?;
+  let pref_dev_id = utils::get_pref_device(&simcontrol.preferred_gpu_name.to_lowercase()).await.map_err(structs::eloc!())?;
   let device = opencl3::device::Device::new(pref_dev_id);
   if let Ok(name) = device.name() {
     if args.verbose >= 1 {
@@ -64,14 +64,14 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
 
   let t0_data = utils::read_ld_file(&simcontrol.input_data_file_path).await;
-  let mut cl_kernels = utils::read_cl_kernel_file(&simcontrol.cl_kernels_file_path).await?.kernel;
+  let mut cl_kernels = utils::read_cl_kernel_file(&simcontrol.cl_kernels_file_path).await.map_err(structs::eloc!())?.kernel;
 
   if args.verbose >= 2 {
     println!("t0_data = {:#?}", &t0_data);
     println!("cl_kernels = {:#?}", &cl_kernels);
   }
 
-  let context = opencl3::context::Context::from_device(&device)?;
+  let context = opencl3::context::Context::from_device(&device).map_err(structs::eloc!())?;
 
   let device_init_end = std::time::Instant::now();
   eprintln!("Hardware Initialization: {}", utils::duration_to_display_str(&(device_init_end - total_start)));
@@ -79,7 +79,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   // Compile cl_kernel source code to programs
   let kernel_compile_start = std::time::Instant::now();
   for i in 0..cl_kernels.len() {
-    cl_kernels[i].load_program(&context)?;
+    cl_kernels[i].load_program(&context).map_err(structs::eloc!())?;
   }
   let kernel_compile_end = std::time::Instant::now();
   eprintln!("CL Kernel Compile Time: {}", utils::duration_to_display_str(&(kernel_compile_end - kernel_compile_start)));
@@ -89,7 +89,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let encoder_width_usize = simcontrol.output_animation_width as usize;
   let encoder_height_usize = simcontrol.output_animation_height as usize;
   let settings = video_rs::encode::Settings::preset_h264_yuv420p(encoder_width_usize, encoder_height_usize, false);
-  let mut encoder = video_rs::encode::Encoder::new(simcontrol.output_animation_file_path.clone(), settings)?;
+  let mut encoder = video_rs::encode::Encoder::new(simcontrol.output_animation_file_path.clone(), settings).map_err(structs::eloc!())?;
   let anim_frame_duration = video_rs::time::Time::from_secs_f64(simcontrol.output_animation_frame_delay as f64 / 1000.0f64);
   let mut anim_t_position = video_rs::time::Time::zero();
 
@@ -160,7 +160,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     if let Some(k) = &cl_kernels[i].cl_device_kernel {
 
       let ld_to_kernel_start = std::time::Instant::now();
-      let kernel_args = utils::ld_data_to_kernel_data_named(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &sim_events_cl)?;
+      let kernel_args = utils::ld_data_to_kernel_data_named(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &sim_events_cl).map_err(structs::eloc!())?;
       let ld_to_kernel_end = std::time::Instant::now();
       total_convert_overhead_duration += ld_to_kernel_end - ld_to_kernel_start;
 
@@ -256,7 +256,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         }
 
         // Setup command queue
-        let mut kernel_event = unsafe { exec_kernel.enqueue_nd_range(&queue)? };
+        let mut kernel_event = unsafe { exec_kernel.enqueue_nd_range(&queue).map_err(structs::eloc!())? };
 
         // Safety: both vectors increase at same time
         sim_events_cl.push(kernel_event.get());
@@ -274,14 +274,14 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
     // Every N or so steps trim the events vector on the assumption some have completed
     if sim_step_i % 20 == 0 {
-      utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl)?;
+      utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl).map_err(structs::eloc!())?;
     }
 
     // Finally possibly render a frame of data to gif_plot
     if sim_step_i % simcontrol.capture_step_period == 0 {
 
       let kernel_to_ld_start = std::time::Instant::now();
-      utils::kernel_data_update_ld_data_named(&args, &context, &queue, &sim_events_cl, &all_kernel_args, &mut sim_data)?;
+      utils::kernel_data_update_ld_data_named(&args, &context, &queue, &sim_events_cl, &all_kernel_args, &mut sim_data).map_err(structs::eloc!())?;
       let kernel_to_ld_end = std::time::Instant::now();
       total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
 
@@ -382,7 +382,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       for wait_i in 0..40 {
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
-        utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl)?;
+        utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl).map_err(structs::eloc!())?;
 
         if sim_events.len() < 1 {
           break;
@@ -407,7 +407,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   eprintln!("Simulation Time Paint: {}", utils::duration_to_display_str(&total_gis_paint_duration));
 
   // Write to simcontrol.output_data_file_path
-  utils::write_ld_file(args, &sim_data, &simcontrol.output_data_file_path).await?;
+  utils::write_ld_file(args, &sim_data, &simcontrol.output_data_file_path).await.map_err(structs::eloc!())?;
 
   // Write to simcontrol.output_animation_file_path
 

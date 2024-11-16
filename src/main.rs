@@ -126,9 +126,59 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let mut total_convert_overhead_duration = std::time::Duration::from_millis(0);
   let mut total_gis_paint_duration = std::time::Duration::from_millis(0);
 
-  // Both vectors must be kepy in-sync; we keep sim_events_cl so we can rapidly pass a pointer to always-valid CL event structures
+  // Allocate long-term CL data
+  let queue = opencl3::command_queue::CommandQueue::create_default_with_properties(&context, opencl3::command_queue::CL_QUEUE_PROFILING_ENABLE, 0).expect("CommandQueue::create_default failed");
+
+  // Both vectors must be kept in-sync; we keep sim_events_cl so we can rapidly pass a pointer to always-valid CL event structures
   let mut sim_events: Vec<opencl3::event::Event> = vec![];
   let mut sim_events_cl: Vec<opencl3::types::cl_event> = vec![];
+
+  // For each kernel, convert LD data to Kernel data;
+  // For each new (Name,Type) pair add to a all_kernel vector of tagged CL buffers.
+  // We then store argument indexes into the all_kernel vector for individual kernels,
+  // allowing re-use of the same buffers across the entire simulation.
+  let mut all_kernel_args: Vec<structs::CL_NamedTaggedArgument> = vec![];
+  let mut all_kernel_arg_indicies: Vec<Vec<usize>> = vec![];
+  for i in 0..cl_kernels.len() {
+    if let Some(k) = &cl_kernels[i].cl_device_kernel {
+
+      let kernel_args = utils::ld_data_to_kernel_data_named(&args, &simcontrol, &sim_data, &context, &cl_kernels[i], &k, &queue, &sim_events_cl)?;
+
+      let mut this_kernel_ak_indicies: Vec<usize> = vec![];
+
+      for kai in 0..kernel_args.len() {
+        let mut all_kernel_args_existing_idx: Option<usize> = None;
+        for akai in 0..all_kernel_args.len() {
+          if kernel_args[kai].name == all_kernel_args[akai].name && std::mem::discriminant(&kernel_args[kai].tagged_argument) == std::mem::discriminant(&all_kernel_args[akai].tagged_argument) {
+            // Name & Type matches, store index directly
+            all_kernel_args_existing_idx = Some(akai);
+            break;
+          }
+        }
+
+        match all_kernel_args_existing_idx {
+          Some(akai_idx) => {
+            this_kernel_ak_indicies.push(akai_idx);
+          }
+          None => {
+            // New name,type must be added to
+            /*all_kernel_args.push(
+              kernel_args[kai]
+            );*/
+          }
+        }
+
+      }
+
+      all_kernel_arg_indicies.push(this_kernel_ak_indicies);
+
+    }
+  }
+
+  // Finally, we must create & inject "Conversion Kernels" into the stream where we have
+  // Variable A of type A followed by Variable A of type B in all_kernel_args.
+  // ^^ TODO
+
 
   for sim_step_i in 0..simcontrol.num_steps {
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.

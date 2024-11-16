@@ -715,6 +715,22 @@ impl CL_TaggedArgument {
 }
 
 
+#[derive(Debug)]
+pub struct CL_NamedTaggedArgument {
+  pub name: String,
+  pub tagged_argument: CL_TaggedArgument,
+}
+
+impl CL_NamedTaggedArgument {
+  pub fn new(name: String, tagged_argument: CL_TaggedArgument) -> CL_NamedTaggedArgument {
+    Self {
+      name: name,
+      tagged_argument: tagged_argument
+    }
+  }
+}
+
+
 
 
 #[derive(Debug)]

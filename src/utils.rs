@@ -557,6 +557,242 @@ pub fn ld_data_to_kernel_data(
   Ok(kernel_data)
 }
 
+
+pub fn ld_data_to_kernel_data_named(
+    args: &structs::Args,
+    sc: &structs::SimControl,
+    ld_data: &ListedData,
+    context: &opencl3::context::Context,
+    cl_kernel: &structs::CL_Kernel,
+    k: &opencl3::kernel::Kernel,
+    queue: &opencl3::command_queue::CommandQueue,
+    events: &Vec<opencl3::types::cl_event>
+  ) -> Result<Vec<structs::CL_NamedTaggedArgument>, Box<dyn std::error::Error>>
+{
+  let mut kernel_data = vec![];
+
+  let work_size = ld_data.len();
+  if let Ok(argc) = k.num_args() {
+    for arg_i in 0..argc {
+      /*
+      println!("args[{}] = {:?}, {:?}, {:?}, {:?}, {:?}", arg_i,
+        k.get_arg_address_qualifier(arg_i), k.get_arg_access_qualifier(arg_i), k.get_arg_type_qualifier(arg_i),
+        k.get_arg_type_name(arg_i), k.get_arg_name(arg_i)
+      );
+      */
+      let is_pointer = k.get_arg_address_qualifier(arg_i)? == 4507;
+      let is_constant = k.get_arg_type_qualifier(arg_i)? == 1;
+      let type_name = k.get_arg_type_name(arg_i)?;
+      let type_name = type_name.trim_end_matches('*'); // Types like 'int*' end with a star, which we do not use b/c we have is_pointer.
+      let variable_name = k.get_arg_name(arg_i)?; //.unwrap_or(String::new());
+      let variable_name_lowercase = variable_name.to_lowercase();
+      let variable_name_uppercase = variable_name.to_uppercase();
+
+      if is_pointer {
+
+        // Lookup data in ld_data w/ fuzzy string matching from all records;
+        // We must allocate a [T] because of the signature required by enqueue_write_buffer.
+        // Because our goal is to hold massive quantities of data, we limit the buffer to some moderate stack-sized value and loop over it w/ blocking CL writes.
+
+        let mut ld_values: Vec<structs::Value> = vec![];
+
+        for record in ld_data.iter() {
+          if let Some(val) = record.get(&variable_name) {
+            ld_values.push(val.clone());
+          }
+          else if let Some(val) = record.get(&variable_name_lowercase) {
+            ld_values.push(val.clone());
+          }
+          else if let Some(val) = record.get(&variable_name_uppercase) {
+            ld_values.push(val.clone());
+          }
+          else {
+            if args.verbose > 1 {
+              println!("[ Warning ] Missing value for simulation data column {}, 0.0 will be used for this record.", variable_name);
+            }
+            ld_values.push(structs::Value::Integer(0)); // Default value regardless of type is 0, b/c we allow ld_values to contain different types & unify later
+          }
+        }
+
+        let buffer_rw = if is_constant { structs::RWColumn::Read(String::new()) } else { structs::RWColumn::Write(String::new()) };
+
+        // Now we match on the CL target type & call into the generic write_values_to_cl_buffer helper routine.
+        match type_name {
+          "uchar" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Uint8Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_uchar>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_uchar,
+                |double_val| double_val as opencl3::types::cl_uchar,
+              )?)
+            ));
+          }
+          "ushort" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Uint16Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_ushort>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_ushort,
+                |double_val| double_val as opencl3::types::cl_ushort,
+              )?)
+            ));
+          }
+          "uint" => {
+            kernel_data.push(
+              structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Uint32Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_uint>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_uint,
+                |double_val| double_val as opencl3::types::cl_uint,
+              )?)
+            ));
+          }
+          "ulong" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Uint64Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_ulong>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_ulong,
+                |double_val| double_val as opencl3::types::cl_ulong,
+              )?)
+            ));
+          }
+
+          "char" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Int8Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_char>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_char,
+                |double_val| double_val as opencl3::types::cl_char,
+              )?)
+            ));
+          }
+          "short" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Int16Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_short>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_short,
+                |double_val| double_val as opencl3::types::cl_short,
+              )?)
+            ));
+          }
+          "int" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Int32Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_int>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_int,
+                |double_val| double_val as opencl3::types::cl_int,
+              )?)
+            ));
+          }
+          "long" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::Int64Buffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_long>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_long,
+                |double_val| double_val as opencl3::types::cl_long,
+              )?)
+            ));
+          }
+
+          "float" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::FloatBuffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_float>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_float,
+                |double_val| double_val as opencl3::types::cl_float,
+              )?)
+            ));
+          }
+          "double" => {
+            kernel_data.push(structs::CL_NamedTaggedArgument::new(
+              variable_name.clone(),
+              structs::CL_TaggedArgument::DoubleBuffer(
+                write_values_to_cl_buffer::<opencl3::types::cl_double>(
+                context, queue, &ld_values, buffer_rw,
+                |int_val| int_val as opencl3::types::cl_double,
+                |double_val| double_val as opencl3::types::cl_double,
+              )?)
+            ));
+          }
+
+          unk => {
+            println!("Unknown CL Buffer type: {}", unk);
+            panic!("Unknown CL Buffer type!");
+          }
+        }
+
+      }
+      else {
+        // This is a constant, look up in cl_kernel.data_constants and if not exists lookup in sc
+        let mut value: Option<structs::CL_TaggedArgument> = None;
+
+        // Look through args.data_constant
+        if value.is_none() {
+          for dc in args.data_constant.iter() {
+            if dc.name == variable_name {
+              value = Some( structs::CL_TaggedArgument::from_value(&dc.value, &type_name) );
+            }
+          }
+        }
+
+        // Look through simcontrol toml file
+        if value.is_none() {
+          if let Some(val_ref) = sc.data_constants.get(&variable_name) {
+            value = Some( structs::CL_TaggedArgument::from_value(val_ref, &type_name) );
+          }
+        }
+
+        // Look through kernel constants
+        if value.is_none() {
+          for constant in cl_kernel.data_constants.iter() {
+            if constant.name == variable_name {
+              // Found it!
+              value = Some( structs::CL_TaggedArgument::from_value(&constant.value, &type_name) );
+              break;
+            }
+          }
+        }
+
+        match value {
+          None => {
+            println!("[ ERROR ] Cannot find variable '{}' in simulation control file OR in '{}'. Please define a constant named '{}' or pass a value on the command line like --data-constant {}=<VALUE>", &variable_name, &sc.cl_kernels_file_path.display(), &variable_name, &variable_name);
+            panic!("Required constant not found in kernels.toml data_constants, or simcontrol.toml data_constants, or passed as --data-constant VAR=val");
+          }
+          Some(cl_tagged_value) => {
+            kernel_data.push(
+              structs::CL_NamedTaggedArgument::new(
+                variable_name.clone(), cl_tagged_value
+              )
+            );
+          }
+        }
+
+      }
+
+    }
+  }
+
+  Ok(kernel_data)
+}
+
+
 fn write_values_to_cl_buffer<T>(
   context: &opencl3::context::Context,
   queue: &opencl3::command_queue::CommandQueue,

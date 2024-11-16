@@ -404,7 +404,16 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       // Finally add plotter_dt frame to video stream
       let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian
 
-      plotter.write(&plotter_frame_pixel_data)?;
+      let mut opencv_pixel_buff: Vec<u8> = vec![];
+      opencv_pixel_buff.reserve((plotter_frame_pixel_data.len() * 3) / (plotter_frame_pixel_data.len() * 4) ); // allocate 75% of the space for the BGR values
+      for dt_px_i in (0..plotter_frame_pixel_data.len()).step_by(4) {
+        opencv_pixel_buff.push(plotter_frame_pixel_data[dt_px_i]);
+        opencv_pixel_buff.push(plotter_frame_pixel_data[dt_px_i+1]);
+        opencv_pixel_buff.push(plotter_frame_pixel_data[dt_px_i+2]);
+      }
+
+      //plotter.write(&&opencv_pixel_buff[..])?; // In general, color images are expected in BGR format
+      opencv::videoio::VideoWriter::write(&mut plotter, &&opencv_pixel_buff[..])?;
 
 
       let render_end = std::time::Instant::now();

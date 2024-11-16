@@ -21,6 +21,9 @@ cargo build --release && ( ./target/release/apollon example-data/entities.csv ex
 ./test.sh -o /dev/stdout --num-steps 3000 --capture-step-period 100 --gis-color-attr color --output-animation-file-path /tmp/a.gif --data-constant red_entity_speed_coef=0.08 && mpv --loop /tmp/a.gif
 
 
+./test.sh -o /dev/stdout --num-steps 9000 --capture-step-period 100 --output-animation-frame-delay 41 --gis-color-attr color --output-animation-file-path /tmp/a.mkv --data-constant red_entity_speed_coef=0.08 -v && mpv --loop /tmp/a.mkv
+
+
 ```
 
 # Name

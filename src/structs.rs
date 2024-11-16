@@ -186,8 +186,8 @@ fn serde_default_pathbuf_devnull()   -> std::path::PathBuf { "/dev/null".into() 
 
 fn serde_default_capture_step_period() -> u64 { 10 }
 
-fn serde_default_output_animation_width()   -> u32 { 1280 }
-fn serde_default_output_animation_height()  -> u32 { 960 }
+fn serde_default_output_animation_width()   -> u32 { 1280/2 }
+fn serde_default_output_animation_height()  -> u32 { 960/2 }
 fn serde_default_output_animation_frame_delay()  -> u32 { 250 }
 
 

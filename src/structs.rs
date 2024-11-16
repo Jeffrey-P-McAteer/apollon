@@ -715,17 +715,17 @@ impl CL_TaggedArgument {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CL_NamedTaggedArgument {
   pub name: String,
-  pub tagged_argument: CL_TaggedArgument,
+  pub tagged_argument: std::sync::Arc<CL_TaggedArgument>,
 }
 
 impl CL_NamedTaggedArgument {
   pub fn new(name: String, tagged_argument: CL_TaggedArgument) -> CL_NamedTaggedArgument {
     Self {
       name: name,
-      tagged_argument: tagged_argument
+      tagged_argument: std::sync::Arc::new(tagged_argument)
     }
   }
 }

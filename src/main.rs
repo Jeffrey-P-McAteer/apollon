@@ -8,6 +8,7 @@
 
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
+use std::borrow::Borrow;
 
 use clap::Parser;
 use num_format::{Locale, ToFormattedString};
@@ -149,7 +150,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       for kai in 0..kernel_args.len() {
         let mut all_kernel_args_existing_idx: Option<usize> = None;
         for akai in 0..all_kernel_args.len() {
-          if kernel_args[kai].name == all_kernel_args[akai].name && std::mem::discriminant(&kernel_args[kai].tagged_argument) == std::mem::discriminant(&all_kernel_args[akai].tagged_argument) {
+          if kernel_args[kai].name == all_kernel_args[akai].name && std::mem::discriminant::<structs::CL_TaggedArgument>(kernel_args[kai].tagged_argument.borrow()) == std::mem::discriminant::<structs::CL_TaggedArgument>(all_kernel_args[akai].tagged_argument.borrow()) {
             // Name & Type matches, store index directly
             all_kernel_args_existing_idx = Some(akai);
             break;
@@ -162,9 +163,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
           }
           None => {
             // New name,type must be added to
-            /*all_kernel_args.push(
-              kernel_args[kai]
-            );*/
+            all_kernel_args.push(
+              kernel_args[kai].clone()
+            );
           }
         }
 

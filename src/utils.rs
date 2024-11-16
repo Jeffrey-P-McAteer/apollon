@@ -843,6 +843,7 @@ fn write_values_to_cl_buffer<T>(
       let num_items_to_write = if cl_buff_write_offset+STACK_BUFF_SIZE > array_len { array_len - cl_buff_write_offset } else { STACK_BUFF_SIZE };
       let write_event = unsafe { queue.enqueue_write_buffer(&mut cl_buff, opencl3::types::CL_BLOCKING, cl_buff_write_offset, &stack_arr[0..num_items_to_write], &[])? };
       cl_buff_write_offset += STACK_BUFF_SIZE;
+      stack_arr_write_offset = 0;
     }
   }
 

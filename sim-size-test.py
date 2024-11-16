@@ -124,7 +124,7 @@ def main():
 
   num_steps = 9000
 
-  num_entities = 16
+  num_entities = 128
   num_entities_to_sim_duration_d = dict()
   for sim_num in range(0, 999):
     try:

@@ -93,19 +93,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let anim_frame_duration = video_rs::time::Time::from_secs_f64(simcontrol.output_animation_frame_delay as f64 / 1000.0f64);
   let mut anim_t_position = video_rs::time::Time::zero();
 
-  /*
-  let mut plotter = opencv::videoio::VideoWriter::new(
-    simcontrol.output_animation_file_path.to_str().ok_or("output_animation_file_path is not a utf-8 string!")?,
-    // opencv::videoio::VideoWriter::fourcc('M', 'J', 'P', 'G'),
-    // opencv::videoio::VideoWriter::fourcc('a', 'v', 'c', '1')?,
-    //opencv::videoio::VideoWriter::fourcc('h', '2', '6', '4')?,
-    opencv::videoio::VideoWriter::fourcc('X', '2', '6', '4')?,
-    (1000 / std::cmp::max(simcontrol.output_animation_frame_delay, 1)).into(),
-    opencv::core::Size { width: simcontrol.output_animation_width as i32,  height: simcontrol.output_animation_height as i32 },
-    true
-  )?;
-  */
-
   let mut plotter_dt = raqote::DrawTarget::new(simcontrol.output_animation_width as i32, simcontrol.output_animation_height as i32);
   let plotter_dt_f32width = simcontrol.output_animation_width as f32;
   let plotter_dt_f32height = simcontrol.output_animation_height as f32;
@@ -225,9 +212,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   // Variable A of type A followed by Variable A of type B in all_kernel_args.
   // ^^ TODO
 
-  // Allocate shared GUI render mem
-  //let sans_serif_font = ("sans-serif", 15.0).into_font();
-  //let monospace_font = ("monospace", 14.0).into_font();
 
   for sim_step_i in 0..simcontrol.num_steps {
     // For each kernel, read in sim_data, process that data, then transform back mutating sim_data itself.
@@ -278,21 +262,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         sim_events_cl.push(kernel_event.get());
         sim_events.push(kernel_event);
 
-        // Kernel is now running, we do NOT wait for processing to finish. Instead we pass
-        // &events to kernel_data_update_ld_data, where those events will be passed to all read functions.
-        // The CL runtime will guarantee the processing has completed before data is read back out.
-
-        // Update: nvm we do wait b/c timing!
-        //kernel_event.wait()?;
-
         let kernel_exec_end = std::time::Instant::now();
         total_kernel_execs_duration += kernel_exec_end - kernel_exec_start;
-
-/*        let kernel_to_ld_start = std::time::Instant::now();
-        utils::kernel_data_update_ld_data(&args, &context, &queue, &sim_events_cl, &kernel_args, &kernel_arg_names, &mut sim_data)?;
-        let kernel_to_ld_end = std::time::Instant::now();
-        total_convert_overhead_duration += kernel_to_ld_end - kernel_to_ld_start;
-*/
 
       }
       else {
@@ -323,8 +294,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         &plotter_dt_default_drawops
       );
 
-      //gif_root.fill(&WHITE)?;
-
       // Render entity histories as small dots
       for (historic_x, historic_y) in anim_point_history.iter() {
         //let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
@@ -333,6 +302,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         let mut pb = raqote::PathBuilder::new();
         pb.move_to(historic_x, historic_y);
         pb.line_to(historic_x, historic_y);
+        pb.line_to(historic_x+1.0f32, historic_y+1.0f32);
         let path = pb.finish();
         plotter_dt.stroke(
           &path,
@@ -352,23 +322,17 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
           if let (Ok(x_f32), Ok(y_f32)) = (x_val.to_f32(), y_val.to_f32()) {
             // Render!
             let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
-            /*let elm = EmptyElement::at((x_i32, y_i32))
-                + Circle::new((0, 0), 2, ShapeStyle::from(&sim_data_colors[row_i]).filled())
-                + Text::new(
-                    label_s,
-                    (10, 0),
-                    sans_serif_font.clone(),
-              );*/
-            //gif_root.draw(&elm)?;
+
             let mut pb = raqote::PathBuilder::new();
             pb.move_to(x_f32, y_f32);
             pb.line_to(x_f32, y_f32);
+            pb.line_to(x_f32+1.0f32, y_f32+1.0f32);
             let path = pb.finish();
             plotter_dt.stroke(
               &path,
               &sim_data_colors[row_i],
               &raqote::StrokeStyle {
-                  width: 2.0,
+                  width: 3.0,
                   ..raqote::StrokeStyle::default()
               },
               &plotter_dt_default_drawops
@@ -391,14 +355,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
       // Draw sim step in lower-left corner
       let sim_step_txt = format!("{:_>9}", sim_step_i);
-      /*let elm = Text::new(
-            sim_step_txt,
-            (
-              (simcontrol.output_animation_width - 72) as i32,
-              (simcontrol.output_animation_height - 16) as i32
-            ),
-            monospace_font.clone() );*/
-      //gif_root.draw(&elm)?;
 
       plotter_dt.draw_text(
           &plotter_dt_font,
@@ -408,8 +364,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
           &plotter_dt_solid_black,
           &plotter_dt_default_drawops
         );
-
-      //gif_root.present()?;
 
       // Finally add plotter_dt frame to video stream
       let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian
@@ -428,10 +382,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
       anim_t_position = anim_t_position.aligned_with(anim_frame_duration).add();
 
-      //plotter.write(&&opencv_pixel_buff[..])?; // In general, color images are expected in BGR format
-      // opencv::videoio::VideoWriter::write(&mut plotter, &&opencv_pixel_buff[..])?;
-
-
       let render_end = std::time::Instant::now();
       total_gis_paint_duration += render_end- render_start;
     }
@@ -445,8 +395,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         eprintln!("Waiting for {} events to complete...", sim_events.len());
       }
 
-      for wait_i in 0..8 {
-        tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+      for wait_i in 0..40 {
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
         utils::trim_completed_events(&args, &mut sim_events, &mut sim_events_cl)?;
 

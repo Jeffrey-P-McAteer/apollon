@@ -15,8 +15,6 @@ use num_format::{Locale, ToFormattedString};
 use plotters::prelude::*;
 use plotters::coord::types::RangedCoordf32;
 
-use opencv::prelude::*;
-
 pub mod structs;
 pub mod utils;
 
@@ -86,6 +84,16 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let kernel_compile_end = std::time::Instant::now();
   eprintln!("CL Kernel Compile Time: {}", utils::duration_to_display_str(&(kernel_compile_end - kernel_compile_start)));
 
+  video_rs::init()?;
+
+  let encoder_width_usize = simcontrol.output_animation_width as usize;
+  let encoder_height_usize = simcontrol.output_animation_height as usize;
+  let settings = video_rs::encode::Settings::preset_h264_yuv420p(encoder_width_usize, encoder_height_usize, false);
+  let mut encoder = video_rs::encode::Encoder::new(simcontrol.output_animation_file_path.clone(), settings)?;
+  let anim_frame_duration = video_rs::time::Time::from_secs_f64(simcontrol.output_animation_frame_delay as f64 / 1000.0f64);
+  let mut anim_t_position = video_rs::time::Time::zero();
+
+  /*
   let mut plotter = opencv::videoio::VideoWriter::new(
     simcontrol.output_animation_file_path.to_str().ok_or("output_animation_file_path is not a utf-8 string!")?,
     // opencv::videoio::VideoWriter::fourcc('M', 'J', 'P', 'G'),
@@ -96,6 +104,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     opencv::core::Size { width: simcontrol.output_animation_width as i32,  height: simcontrol.output_animation_height as i32 },
     true
   )?;
+  */
+
   let mut plotter_dt = raqote::DrawTarget::new(simcontrol.output_animation_width as i32, simcontrol.output_animation_height as i32);
   let plotter_dt_f32width = simcontrol.output_animation_width as f32;
   let plotter_dt_f32height = simcontrol.output_animation_height as f32;
@@ -404,16 +414,22 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
       // Finally add plotter_dt frame to video stream
       let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian
 
-      let mut opencv_pixel_buff: Vec<u8> = vec![];
-      opencv_pixel_buff.reserve((plotter_frame_pixel_data.len() * 3) / (plotter_frame_pixel_data.len() * 4) ); // allocate 75% of the space for the BGR values
+      let mut bgr_px_buff: Vec<u8> = vec![];
+      bgr_px_buff.reserve((plotter_frame_pixel_data.len() * 3) / (plotter_frame_pixel_data.len() * 4) ); // allocate 75% of the space for the BGR values
       for dt_px_i in (0..plotter_frame_pixel_data.len()).step_by(4) {
-        opencv_pixel_buff.push(plotter_frame_pixel_data[dt_px_i]);
-        opencv_pixel_buff.push(plotter_frame_pixel_data[dt_px_i+1]);
-        opencv_pixel_buff.push(plotter_frame_pixel_data[dt_px_i+2]);
+        bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i]);
+        bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+1]);
+        bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+2]);
       }
 
+      let ndarr_data = ndarray::Array3::from_shape_vec((encoder_height_usize, encoder_width_usize, 3), bgr_px_buff).map_err(structs::eloc!())?;
+
+      encoder.encode(&ndarr_data, anim_t_position).map_err(structs::eloc!())?;
+
+      anim_t_position = anim_t_position.aligned_with(anim_frame_duration).add();
+
       //plotter.write(&&opencv_pixel_buff[..])?; // In general, color images are expected in BGR format
-      opencv::videoio::VideoWriter::write(&mut plotter, &&opencv_pixel_buff[..])?;
+      // opencv::videoio::VideoWriter::write(&mut plotter, &&opencv_pixel_buff[..])?;
 
 
       let render_end = std::time::Instant::now();
@@ -446,7 +462,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   }
 
   // Finishes writing to disk
-  plotter.release()?;
+  encoder.finish()?;
 
 
   let simulation_end = std::time::Instant::now();

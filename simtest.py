@@ -130,8 +130,8 @@ kernel void compute_position (
       // We also move away from our neighbor (i-1)
       float x_dist_to_i1 = X0[i] - X0[i-1];
       float y_dist_to_i1 = Y0[i] - Y0[i-1];
-      X0[i] = X0[i] + (red_entity_speed_coef * (x_dist_to_i1 / 100.0) );
-      Y0[i] = Y0[i] + (red_entity_speed_coef * (y_dist_to_i1 / 100.0) );
+      X0[i] = X0[i] + (red_entity_speed_coef * (x_dist_to_i1 / 400.0) );
+      Y0[i] = Y0[i] + (red_entity_speed_coef * (y_dist_to_i1 / 400.0) );
 
       // Finally clamp to a box of sorts
       if (X0[i] < 5) {

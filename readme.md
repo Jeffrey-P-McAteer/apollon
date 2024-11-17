@@ -23,6 +23,9 @@ cargo build --release && ( ./target/release/apollon example-data/entities.csv ex
 
 ./test.sh -o /dev/stdout --num-steps 9000 --capture-step-period 100 --output-animation-frame-delay 41 --gis-color-attr color --output-animation-file-path example.mp4 --data-constant red_entity_speed_coef=0.08 -v && mpv --loop example.mp4
 
+# Warning: Running w/ --post-sim-cmd makes the timing graph junk!
+python sim-size-test.py --num-steps 5000 --capture-step-period 50 --output-animation-frame-delay 41 --output-animation-file-path /tmp/sim.mp4 --post-sim-cmd 'mpv --loop /tmp/sim.mp4'
+
 
 ```
 

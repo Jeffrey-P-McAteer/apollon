@@ -109,13 +109,15 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   )?;
 
 
-  let mut anim_point_history: Vec<(f32, f32)> = vec![];
-
   let simulation_start = std::time::Instant::now();
 
   // Each step we go in between ListedData (sim_data) and a utils::ld_data_to_kernel_data vector; eventually
   // the best approach is to keep everything in a utils::ld_data_to_kernel_data format & map indexes between kernels so they read/write the same data.
   let mut sim_data = t0_data.clone();
+
+  // anim_point_history is used as a circular buffer
+  let mut anim_point_history: Vec<(f32, f32)> = vec![(0.0, 0.0); sim_data.len() * simcontrol.max_historic_entity_locations];
+  let mut anim_point_history_i = 0;
 
   // For performance reasons we pre-allocate all entity colors here and re-use
   // when plotting data. This means there will be NO capability to change an entity color in the middle of
@@ -335,10 +337,17 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
                 );
               }
 
-              anim_point_history.push( (x_f32, y_f32) );
+              // Safety; anim_point_history_i begins at 0 and we never allow it to be >= .len() below
+              unsafe { *(anim_point_history.get_unchecked_mut(anim_point_history_i)) = (x_f32, y_f32); }
+              anim_point_history_i += 1;
+              if anim_point_history_i >= anim_point_history.len() {
+                anim_point_history_i = 0;
+              }
+              /*anim_point_history.push( (x_f32, y_f32) );
               if anim_point_history.len() > sim_data.len() * simcontrol.max_historic_entity_locations {
                 anim_point_history.remove(0); // todo perf optimize like a queue
-              }
+              }*/
+
             }
           }
         }

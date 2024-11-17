@@ -77,6 +77,10 @@ pub struct Args {
     #[arg(short = 'v', long, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
+    /// Pass a shell command to run at the end of the simulation
+    #[arg(long)]
+    pub post_sim_cmd: Option<String>,
+
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

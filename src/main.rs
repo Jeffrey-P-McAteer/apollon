@@ -428,6 +428,14 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   let total_end = std::time::Instant::now();
   eprintln!("Total Time: {}", utils::duration_to_display_str(&(total_end - total_start)));
 
+  if let Some(cmd_txt) = &args.post_sim_cmd {
+    tokio::process::Command::new("sh")
+      .arg("-c")
+      .arg(&cmd_txt)
+      .spawn()?
+      .wait().await?;
+  }
+
   Ok(())
 }
 

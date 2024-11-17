@@ -155,16 +155,26 @@ kernel void compute_position (
 
 '''.strip())
 
-    subprocess.run([
+    cmd = [
       os.path.join('target', 'release', 'apollon'),
       sim_control_toml,
-        '--num-steps', f'{num_steps}',
-        '--capture-step-period', '999999999',
-    ], check=True)
+    ]
+    if not '--num-steps' in sys.argv:
+        cmd = cmd + [ '--num-steps', f'{num_steps}', ]
+    if not '--capture-step-period' in sys.argv:
+        cmd = cmd + [ '--capture-step-period', '999999999', ]
+
+    cmd = cmd + sys.argv[1:]
+
+    cmd = [x for x in cmd if not x is None]
+
+    print(f'> {" ".join(cmd)}')
+
+    subprocess.run(cmd, check=True)
+
   except:
     if not 'NO_REMOVE_SIMS' in os.environ:
       shutil.rmtree(sim_dir)
-
     raise
 
   if not 'NO_REMOVE_SIMS' in os.environ:

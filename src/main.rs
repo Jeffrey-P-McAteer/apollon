@@ -337,6 +337,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
               );
 
               anim_point_history.push( (x_f32, y_f32) );
+              if anim_point_history.len() > sim_data.len() * 8 {
+                anim_point_history.remove(0); // todo perf optimize like a queue
+              }
             }
           }
         }

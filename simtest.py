@@ -60,9 +60,8 @@ colmap.y0 = 'Y0'
 # Constant variables are NOT pointers, and get passed in as their type in the order specified here.
 # for that reason, order in this list MUST MATCH ordering in your kernel's `source` function.
 data_constants = [
-  ['red_entity_speed_coef', 'float', 1.5 ],
-  ['blue_entity_speed_coef', 'float', 2.0 ],
-#  ['another_var',   'int64', 999 ],
+  ['red_entity_speed_coef', 'float', 1.75 ],
+  ['blue_entity_speed_coef', 'float', 1.0 ],
 ]
 
 # This string is passed verbatim to the compiler backend.
@@ -74,14 +73,41 @@ source = """
 kernel void compute_position (
     global float* X0,
     global float* Y0,
+    global char* entity_x_direction, // 0 == positive 1 == negative
+    global char* entity_y_direction,
     float blue_entity_speed_coef,
     float red_entity_speed_coef
 )
 {
     const size_t i = get_global_id(0);
     if (i == 0) {
-      X0[i] = X0[i] + (blue_entity_speed_coef);
-      Y0[i] = Y0[i] + (blue_entity_speed_coef);
+      if (entity_x_direction[i] == 0) {
+        X0[i] = X0[i] + (blue_entity_speed_coef);
+      }
+      else {
+        X0[i] = X0[i] - (blue_entity_speed_coef);
+      }
+
+      if (entity_y_direction[i] == 0) {
+        Y0[i] = Y0[i] + (blue_entity_speed_coef);
+      }
+      else {
+        Y0[i] = Y0[i] - (blue_entity_speed_coef);
+      }
+
+      if (X0[i] > 500) {
+        entity_x_direction[i] = 1;
+      }
+      if (X0[i] < 50) {
+        entity_x_direction[i] = 0;
+      }
+      if (Y0[i] > 400) {
+        entity_y_direction[i] = 1;
+      }
+      if (Y0[i] < 40) {
+        entity_y_direction[i] = 0;
+      }
+
     }
     else {
 

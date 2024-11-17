@@ -300,9 +300,12 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
 
         // Render entity histories as small dots in parallel
         //let mut join_set = tokio::task::JoinSet::new();
+        let udt_height = plotter_dt.height();
+        let udt_width = plotter_dt.width();
+        let udt = UnsafeDrawTarget(plotter_dt.get_data_mut().into());
         tokio_scoped::scope(|scope| {
           for historic_xy_slice in anim_point_history.chunks(256) {
-            scope.spawn( write_historic_xy_points_to_dt(historic_xy_slice, UnsafeDrawTarget(&mut plotter_dt), &plotter_dt_solid_black, &plotter_dt_default_drawops) );
+            scope.spawn( write_historic_xy_points_to_dt(historic_xy_slice, udt_width, udt_height, &udt) );
           }
         });
 
@@ -434,22 +437,22 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   Ok(())
 }
 
-async fn write_historic_xy_points_to_dt(historic_xy_slice: &[(f32, f32)], plotter_dt_addr: UnsafeDrawTarget, plotter_dt_solid_black: &raqote::Source<'_>, plotter_dt_default_drawops: &raqote::DrawOptions) {
-  let plotter_dt: *mut raqote::DrawTarget = unsafe { std::mem::transmute(plotter_dt_addr.0) };
+
+async fn write_historic_xy_points_to_dt(historic_xy_slice: &[(f32, f32)], draw_buffer_width: i32, draw_buffer_height: i32, draw_buffer: &UnsafeDrawTarget<'_>) {
+  let draw_buffer: &mut [u32] = unsafe { &mut *draw_buffer.0.get() };
+  // dra_buffer has (A << 24) | (R << 16) | (G << 8) | B representation
   for (historic_x, historic_y) in historic_xy_slice {
     let (historic_x, historic_y) = (*historic_x as f32, *historic_y as f32);
-    unsafe {
-      plotter_dt.as_mut().expect("Null pointer in write_historic_xy_points_to_dt").fill_rect(
-        historic_x, historic_y,
-        1.0f32, 1.0f32,
-        &plotter_dt_solid_black,
-        &plotter_dt_default_drawops
-      );
-    }
-
+    let db_x = historic_x as i32;
+    let db_y = historic_y as i32;
+    let db_offset = (db_y * draw_buffer_width) + db_x;
+    draw_buffer[db_offset as usize] = 0x00;
   }
 }
 
-// Type safety goes out the window when I call for
-struct UnsafeDrawTarget(*mut raqote::DrawTarget);
-unsafe impl Send for UnsafeDrawTarget {}
+// Type safety goes out the window when I need threads throwing pixels into a buffer
+struct UnsafeDrawTarget<'a>(std::cell::UnsafeCell<&'a mut [u32]>);
+unsafe impl Send for UnsafeDrawTarget<'_> {}
+unsafe impl Sync for UnsafeDrawTarget<'_> {}
+
+

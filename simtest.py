@@ -98,13 +98,13 @@ kernel void compute_position (
         Y0[i] = Y0[i] - (blue_entity_speed_coef);
       }
 
-      if (X0[i] > 500) {
+      if (X0[i] > 1240) {
         entity_x_direction[i] = 1;
       }
-      if (X0[i] < 50) {
+      if (X0[i] < 40) {
         entity_x_direction[i] = 0;
       }
-      if (Y0[i] > 400) {
+      if (Y0[i] > 940) {
         entity_y_direction[i] = 1;
       }
       if (Y0[i] < 40) {
@@ -137,14 +137,14 @@ kernel void compute_position (
       Y0[i] = Y0[i] + (red_entity_speed_coef * (0.9 / y_dist_to_i1) );
 
       // Finally clamp to a box of sorts
-      if (X0[i] < 5) {
-        X0[i] = 5;
+      if (X0[i] < 100) {
+        X0[i] = 100;
       }
-      if (X0[i] > 800) {
-        X0[i] = 800;
+      if (X0[i] > 1000) {
+        X0[i] = 1000;
       }
-      if (Y0[i] < 5) {
-        Y0[i] = 5;
+      if (Y0[i] < 100) {
+        Y0[i] = 100;
       }
       if (Y0[i] > 800) {
         Y0[i] = 800;

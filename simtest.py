@@ -29,6 +29,9 @@ gis_y_attr_name = "Y0"
 
 gis_name_attr = "Name"
 
+# This causes us to not draw text on entity 8 and beyond
+max_entity_idx_to_name = 8
+
 [data_constants]
 
 '''.strip()+'\n')

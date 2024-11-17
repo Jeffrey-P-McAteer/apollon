@@ -315,8 +315,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
           if let (Some(x_val), Some(y_val)) = (sim_data[row_i].get(&simcontrol.gis_x_attr_name), sim_data[row_i].get(&simcontrol.gis_y_attr_name)) {
             if let (Ok(x_f32), Ok(y_f32)) = (x_val.to_f32(), y_val.to_f32()) {
               // Render!
-              let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
-
               plotter_dt.fill_rect(
                 x_f32-1.0f32, y_f32-1.0f32,
                 3.0f32, 3.0f32,
@@ -325,20 +323,20 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
               );
 
               // Write text at same y but x+8px to right
-
-              // eprintln!("label_s = {} at {},{}", &label_s, x_f32 + 8.0f32, y_f32); // TODO we can overflow 32-bit int space here; TODO prevent/warn on bad sims?
-
-              plotter_dt.draw_text(
-                &plotter_dt_font,
-                15.0,
-                &label_s,
-                raqote::Point::new(x_f32 + 8.0f32, y_f32),
-                &plotter_dt_solid_black,
-                &plotter_dt_default_drawops
-              );
+              if row_i < simcontrol.max_entity_idx_to_name {
+                let mut label_s = sim_data[row_i].get(&simcontrol.gis_name_attr).map(|v| v.to_string()).unwrap_or_else(|| format!("{}", row_i));
+                plotter_dt.draw_text(
+                  &plotter_dt_font,
+                  15.0,
+                  &label_s,
+                  raqote::Point::new(x_f32 + 8.0f32, y_f32),
+                  &plotter_dt_solid_black,
+                  &plotter_dt_default_drawops
+                );
+              }
 
               anim_point_history.push( (x_f32, y_f32) );
-              if anim_point_history.len() > sim_data.len() * 8 {
+              if anim_point_history.len() > sim_data.len() * simcontrol.max_historic_entity_locations {
                 anim_point_history.remove(0); // todo perf optimize like a queue
               }
             }

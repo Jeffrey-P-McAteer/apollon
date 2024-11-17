@@ -172,6 +172,12 @@ pub struct SimControl {
     #[serde(default = "serde_default_value_map")]
     pub data_constants: HashMap<String, Value>,
 
+    #[serde(default = "serde_default_max_entity_idx_to_name")]
+    pub max_entity_idx_to_name: usize,
+
+    #[serde(default = "serde_default_max_historic_entity_locations")]
+    pub max_historic_entity_locations: usize,
+
 }
 
 fn serde_empty_string()              -> String { String::new() }
@@ -194,7 +200,8 @@ fn serde_default_output_animation_width()   -> u32 { 1280 }
 fn serde_default_output_animation_height()  -> u32 { 960 }
 fn serde_default_output_animation_frame_delay()  -> u32 { 250 }
 
-
+fn serde_default_max_entity_idx_to_name() -> usize { std::usize::MAX /* name everything*/ }
+fn serde_default_max_historic_entity_locations() -> usize { 8 }
 
 
 

@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>  {
   let args = structs::Args::parse();
 
   let rt  = tokio::runtime::Builder::new_multi_thread()
-    .worker_threads(4)
+    .worker_threads(std::cmp::max(2, num_cpus::get_physical())) // Use all host cores, unless single-cored in which case pretend to have 2
     .thread_stack_size(8 * 1024 * 1024)
     .enable_time()
     .enable_io()
@@ -298,18 +298,13 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
           &plotter_dt_default_drawops
         );
 
-        // Render entity histories as small dots
-        for (historic_x, historic_y) in anim_point_history.iter() {
-          //let elm = EmptyElement::at((*historic_x, *historic_y)) + Circle::new((0, 0), 1, ShapeStyle::from(&RGBColor(110, 110, 110)).filled());
-          //gif_root.draw(&elm)?;
-          let (historic_x, historic_y) = (*historic_x as f32, *historic_y as f32);
-          plotter_dt.fill_rect(
-            historic_x, historic_y,
-            1.0f32, 1.0f32,
-            &plotter_dt_solid_black,
-            &plotter_dt_default_drawops
-          );
-        }
+        // Render entity histories as small dots in parallel
+        //let mut join_set = tokio::task::JoinSet::new();
+        tokio_scoped::scope(|scope| {
+          for historic_xy_slice in anim_point_history.chunks(256) {
+            scope.spawn( write_historic_xy_points_to_dt(historic_xy_slice, UnsafeDrawTarget(&mut plotter_dt), &plotter_dt_solid_black, &plotter_dt_default_drawops) );
+          }
+        });
 
         // For each entity, if an gis_x_attr_name and gis_y_attr_name coordinate are known and are numeric,
         // render a dot with a label from gis_name_attr
@@ -439,3 +434,22 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   Ok(())
 }
 
+async fn write_historic_xy_points_to_dt(historic_xy_slice: &[(f32, f32)], plotter_dt_addr: UnsafeDrawTarget, plotter_dt_solid_black: &raqote::Source<'_>, plotter_dt_default_drawops: &raqote::DrawOptions) {
+  let plotter_dt: *mut raqote::DrawTarget = unsafe { std::mem::transmute(plotter_dt_addr.0) };
+  for (historic_x, historic_y) in historic_xy_slice {
+    let (historic_x, historic_y) = (*historic_x as f32, *historic_y as f32);
+    unsafe {
+      plotter_dt.as_mut().expect("Null pointer in write_historic_xy_points_to_dt").fill_rect(
+        historic_x, historic_y,
+        1.0f32, 1.0f32,
+        &plotter_dt_solid_black,
+        &plotter_dt_default_drawops
+      );
+    }
+
+  }
+}
+
+// Type safety goes out the window when I call for
+struct UnsafeDrawTarget(*mut raqote::DrawTarget);
+unsafe impl Send for UnsafeDrawTarget {}

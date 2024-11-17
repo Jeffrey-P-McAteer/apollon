@@ -126,6 +126,14 @@ kernel void compute_position (
         X0[i] = X0[i] + (red_entity_speed_coef * (-x_dist_to_i0 / 100.0) );
         Y0[i] = Y0[i] + (red_entity_speed_coef * (-y_dist_to_i0 / 100.0) );
       }
+
+      // We also move away from our neighbor (i-1)
+      float x_dist_to_i1 = X0[i] - X0[i-1];
+      float y_dist_to_i1 = Y0[i] - Y0[i-1];
+      X0[i] = X0[i] + (red_entity_speed_coef * (x_dist_to_i1 / 100.0) );
+      Y0[i] = Y0[i] + (red_entity_speed_coef * (y_dist_to_i1 / 100.0) );
+
+
     }
 }
 """

@@ -7,3 +7,6 @@
 # Added by cargo
 
 /target
+
+__pycache__
+__pycache__/*

@@ -28,6 +28,7 @@ gis_x_attr_name = "X0"
 gis_y_attr_name = "Y0"
 
 gis_name_attr = "Name"
+gis_color_attr = "color"
 
 # This causes us to not draw text on entity 8 and beyond
 max_entity_idx_to_name = 8
@@ -37,10 +38,10 @@ max_entity_idx_to_name = 8
 '''.strip()+'\n')
 
     with open(sim_t0_data, 'w') as fd:
-      fd.write(','.join(['Name', 'X0', 'Y0'])+'\n')
+      fd.write(','.join(['Name', 'X0', 'Y0', 'color'])+'\n')
       for i in range(0, num_entities):
         fd.write(','.join([
-          f'entity{i}', f'{random.randint(0, 600)}', f'{random.randint(0, 600)}',
+          f'entity{i}', f'{random.randint(0, 600)}', f'{random.randint(0, 600)}', random.choice(['black', 'red', 'blue', 'yellow', 'green', 'pink', 'orange', 'gray'])
         ])+'\n')
 
 

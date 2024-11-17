@@ -26,6 +26,7 @@ cargo build --release && ( ./target/release/apollon example-data/entities.csv ex
 # Warning: Running w/ --post-sim-cmd makes the timing graph junk!
 python sim-size-test.py --num-steps 5000 --capture-step-period 50 --output-animation-frame-delay 41 --output-animation-file-path /tmp/sim.mp4 --post-sim-cmd 'mpv --loop /tmp/sim.mp4'
 
+python sim-size-test.py --num-steps 2500 --capture-step-period 5 --output-animation-frame-delay 81 --output-animation-file-path /tmp/sim.mp4 --post-sim-cmd 'mpv --loop /tmp/sim.mp4'
 
 ```
 

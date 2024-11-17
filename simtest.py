@@ -13,12 +13,13 @@ def run_one_test(num_entities, num_steps):
   sim_dir = os.path.join(tempfile.gettempdir(), f'sim_{num_entities}_entities_{num_steps}_steps')
   os.makedirs(sim_dir, exist_ok=True)
 
-  sim_control_toml = os.path.join(sim_dir, 'simcontrol.toml')
-  sim_t0_data =      os.path.join(sim_dir, 'in_data.csv')
-  sim_cl_kernels =   os.path.join(sim_dir, 'cl-kernels.toml')
+  try:
+    sim_control_toml = os.path.join(sim_dir, 'simcontrol.toml')
+    sim_t0_data =      os.path.join(sim_dir, 'in_data.csv')
+    sim_cl_kernels =   os.path.join(sim_dir, 'cl-kernels.toml')
 
-  with open(sim_control_toml, 'w') as fd:
-    fd.write(f'''
+    with open(sim_control_toml, 'w') as fd:
+      fd.write(f'''
 [simulation]
 input_data_file_path = "{sim_t0_data}"
 cl_kernels_file_path = "{sim_cl_kernels}"
@@ -32,16 +33,16 @@ gis_name_attr = "Name"
 
 '''.strip()+'\n')
 
-  with open(sim_t0_data, 'w') as fd:
-    fd.write(','.join(['Name', 'X0', 'Y0'])+'\n')
-    for i in range(0, num_entities):
-      fd.write(','.join([
-        f'entity{i}', f'{random.randint(0, 600)}', f'{random.randint(0, 600)}',
-      ])+'\n')
+    with open(sim_t0_data, 'w') as fd:
+      fd.write(','.join(['Name', 'X0', 'Y0'])+'\n')
+      for i in range(0, num_entities):
+        fd.write(','.join([
+          f'entity{i}', f'{random.randint(0, 600)}', f'{random.randint(0, 600)}',
+        ])+'\n')
 
 
-  with open(sim_cl_kernels, 'w') as fd:
-    fd.write('''
+    with open(sim_cl_kernels, 'w') as fd:
+      fd.write('''
 [[kernel]]
 # The kernel `name` MUST match a kernel defined in the `source` field.
 name = "compute_position"
@@ -107,13 +108,18 @@ kernel void compute_position (
 
 '''.strip())
 
-  subprocess.run([
-    os.path.join('target', 'release', 'apollon'),
-    sim_control_toml,
-      '--num-steps', f'{num_steps}',
-      '--capture-step-period', '999999999',
-  ], check=True)
+    subprocess.run([
+      os.path.join('target', 'release', 'apollon'),
+      sim_control_toml,
+        '--num-steps', f'{num_steps}',
+        '--capture-step-period', '999999999',
+    ], check=True)
+  except:
+    if not 'NO_REMOVE_SIMS' in os.environ:
+      shutil.rmtree(sim_dir)
 
+    raise
 
   if not 'NO_REMOVE_SIMS' in os.environ:
     shutil.rmtree(sim_dir)
+

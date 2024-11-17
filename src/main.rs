@@ -304,7 +304,7 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         let udt_width = plotter_dt.width();
         let udt = UnsafeDrawTarget(plotter_dt.get_data_mut().into());
         tokio_scoped::scope(|scope| {
-          for historic_xy_slice in anim_point_history.chunks(256) {
+          for historic_xy_slice in anim_point_history.chunks(4096) {
             scope.spawn( write_historic_xy_points_to_dt(historic_xy_slice, udt_width, udt_height, &udt) );
           }
         });

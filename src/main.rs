@@ -327,6 +327,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
               );
 
               // Write text at same y but x+8px to right
+
+              // eprintln!("label_s = {} at {},{}", &label_s, x_f32 + 8.0f32, y_f32); // TODO we can overflow 32-bit int space here; TODO prevent/warn on bad sims?
+
               plotter_dt.draw_text(
                 &plotter_dt_font,
                 15.0,

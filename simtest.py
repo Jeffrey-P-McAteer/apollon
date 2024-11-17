@@ -133,6 +133,19 @@ kernel void compute_position (
       X0[i] = X0[i] + (red_entity_speed_coef * (x_dist_to_i1 / 100.0) );
       Y0[i] = Y0[i] + (red_entity_speed_coef * (y_dist_to_i1 / 100.0) );
 
+      // Finally clamp to a box of sorts
+      if (X0[i] < 5) {
+        X0[i] = 5;
+      }
+      if (X0[i] > 800) {
+        X0[i] = 800;
+      }
+      if (Y0[i] < 5) {
+        Y0[i] = 5;
+      }
+      if (Y0[i] > 800) {
+        Y0[i] = 800;
+      }
 
     }
 }

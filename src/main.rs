@@ -108,6 +108,8 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     plotter_ft_font_typed, 0
   )?;
 
+  let mut bgr_px_buff: Vec<u8> = vec![0; encoder_height_usize * encoder_width_usize * 3]; // allocate space for the BGR values
+  let mut ndarr_data = ndarray::Array3::from_shape_vec((encoder_height_usize, encoder_width_usize, 3), bgr_px_buff.clone()).map_err(structs::eloc!())?;
 
   let simulation_start = std::time::Instant::now();
 
@@ -343,10 +345,6 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
               if anim_point_history_i >= anim_point_history.len() {
                 anim_point_history_i = 0;
               }
-              /*anim_point_history.push( (x_f32, y_f32) );
-              if anim_point_history.len() > sim_data.len() * simcontrol.max_historic_entity_locations {
-                anim_point_history.remove(0); // todo perf optimize like a queue
-              }*/
 
             }
           }
@@ -367,15 +365,15 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         // Finally add plotter_dt frame to video stream
         let plotter_frame_pixel_data = plotter_dt.get_data_u8(); // with the order BGRA on little endian
 
-        let mut bgr_px_buff: Vec<u8> = vec![];
-        bgr_px_buff.reserve((plotter_frame_pixel_data.len() * 3) / (plotter_frame_pixel_data.len() * 4) ); // allocate 75% of the space for the BGR values
-        for dt_px_i in (0..plotter_frame_pixel_data.len()).step_by(4) {
-          bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i]);
-          bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+1]);
-          bgr_px_buff.push(plotter_frame_pixel_data[dt_px_i+2]);
+        if let Some(mut ndarr_data) = ndarr_data.as_slice_mut() {
+          let mut ndarr_px_i = 0;
+          for dt_px_i in (0..plotter_frame_pixel_data.len()).step_by(4) {
+            ndarr_data[ndarr_px_i] = plotter_frame_pixel_data[dt_px_i];
+            ndarr_data[ndarr_px_i+1] = plotter_frame_pixel_data[dt_px_i+1];
+            ndarr_data[ndarr_px_i+2] = plotter_frame_pixel_data[dt_px_i+2];
+            ndarr_px_i += 3;
+          }
         }
-
-        let ndarr_data = ndarray::Array3::from_shape_vec((encoder_height_usize, encoder_width_usize, 3), bgr_px_buff).map_err(structs::eloc!())?;
 
         encoder.encode(&ndarr_data, anim_t_position).map_err(structs::eloc!())?;
 

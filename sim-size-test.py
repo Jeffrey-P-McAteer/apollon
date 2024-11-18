@@ -89,7 +89,7 @@ def main():
 
   for num_steps, xy_data in num_steps_xy_data.items():
     x, y = xy_data
-    ax.plot(x, y, label=f'{num_steps} steps')
+    ax.plot(x, y, label=f'{num_steps} steps', marker='o')
 
   ax.set_xlabel('Entities Processed')
   ax.set_ylabel('Seconds')

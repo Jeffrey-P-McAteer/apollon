@@ -45,9 +45,22 @@ def main():
 
   print(f'MAX_ENTITIES = {max_entities}')
 
+  sim_runs_steps = []
+  try:
+    sim_runs_steps = [int(x) for x in os.environ['SIM_RUNS_STEPS'].split(',')]
+  except:
+    pass
+
+  if len(sim_runs_steps) < 1:
+    sim_runs_steps = [50_000, 100_000, 250_000]
+
+  print(f'SIM_RUNS_STEPS = {sim_runs_steps}')
+
+  begin_s = time.time()
+
   num_steps_xy_data = dict()
 
-  for num_steps in [50_000, 100_000, 250_000]:
+  for num_steps in sim_runs_steps:
     print(f'num_steps = {num_steps}')
     num_entities = 1024
     num_entities_to_sim_duration_d = dict()
@@ -103,6 +116,12 @@ def main():
   saved_png = os.path.join(tempfile.gettempdir(), f'sim_size_test_{datetime.datetime.now().strftime("%m-%d_%H:%M")}.png')
   matplotlib.pyplot.savefig(saved_png)
   print(f'Graph saved to {saved_png}')
+
+  end_s = time.time()
+  duration_s = end_s - begin_s
+  duration_m = int(duration_s / 60.0)
+  duration_s = int(duration_s - (duration_m * 60.0))
+  print(f'Entire measurement took {duration_m}m {duration_s}s')
 
   matplotlib.pyplot.show()
 

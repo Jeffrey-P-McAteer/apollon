@@ -7,6 +7,7 @@ import traceback
 import json
 import time
 import shutil
+import datetime
 
 pkgs = os.path.join(tempfile.gettempdir(), 'simtest-pkgs')
 os.makedirs(pkgs, exist_ok=True)
@@ -99,7 +100,12 @@ def main():
   ax.yaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:,.0f}'))
   ax.xaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:,.0f}'))
 
+  saved_png = os.path.join(tempfile.gettempdir(), f'sim_size_test_{datetime.datetime.now().strftime("%m-%d_%H:%M")}.png')
+  matplotlib.pyplot.savefig(saved_png)
+  print(f'Graph saved to {saved_png}')
+
   matplotlib.pyplot.show()
+
 
 
 

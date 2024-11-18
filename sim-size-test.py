@@ -56,7 +56,7 @@ def main():
 
   print(f'SIM_RUNS_STEPS = {sim_runs_steps}')
 
-  begin_s = time.time()
+  total_begin_s = time.time()
 
   num_steps_xy_data = dict()
 
@@ -114,11 +114,11 @@ def main():
   ax.xaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter('{x:,.0f}'))
 
   saved_png = os.path.join(tempfile.gettempdir(), f'sim_size_test_{datetime.datetime.now().strftime("%m-%d_%H-%M")}.png')
-  matplotlib.pyplot.savefig(saved_png)
+  matplotlib.pyplot.savefig(saved_png, dpi=320)
   print(f'Graph saved to {saved_png}')
 
-  end_s = time.time()
-  duration_s = end_s - begin_s
+  total_end_s = time.time()
+  duration_s = total_end_s - total_begin_s
   duration_m = int(duration_s / 60.0)
   duration_s = int(duration_s - (duration_m * 60.0))
   print(f'Entire measurement took {duration_m}m {duration_s}s')

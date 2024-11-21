@@ -146,6 +146,21 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
     }
   }
 
+  //let mut sim_data_rasterized_argb: Vec<> = vec![];
+
+
+  // We also read an arbitrary background image, or use white as a background for the renderer.
+  let sim_bg_argb_frame: Vec<u32> = if simcontrol.background_img.len() > 0 {
+    let img = image::ImageReader::open(simcontrol.background_img)?.decode()?;
+
+
+    std::unimplemented!()
+  }
+  else {
+    vec![0xffffffffu32, ((simcontrol.output_animation_width * simcontrol.output_animation_height) as usize).try_into().unwrap()]
+  };
+
+
   let mut total_kernel_execs_duration = std::time::Duration::from_millis(0);
   let mut total_convert_overhead_duration = std::time::Duration::from_millis(0);
   let mut total_gis_paint_duration = std::time::Duration::from_millis(0);
@@ -296,17 +311,14 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
         let render_start = std::time::Instant::now();
         // Render!
 
-        plotter_dt.fill_rect(
-          0.0f32, 0.0f32, plotter_dt_f32width, plotter_dt_f32height,
-          &plotter_dt_solid_white,
-          &plotter_dt_default_drawops
-        );
-
-        // Render entity histories as small dots in parallel
-        //let mut join_set = tokio::task::JoinSet::new();
         let udt_height = plotter_dt.height();
         let udt_width = plotter_dt.width();
         let udt = UnsafeDrawTarget(plotter_dt.get_data_mut().into());
+
+        write_frame_to_dt(&sim_bg_argb_frame, udt_width, udt_height, &udt);
+
+        // Render entity histories as small dots in parallel
+        //let mut join_set = tokio::task::JoinSet::new();
         tokio_scoped::scope(|scope| {
           for historic_xy_slice in anim_point_history.chunks(4096) {
             scope.spawn( write_historic_xy_points_to_dt(historic_xy_slice, udt_width, udt_height, &udt) );
@@ -442,6 +454,9 @@ async fn main_async(args: &structs::Args) -> Result<(), Box<dyn std::error::Erro
   Ok(())
 }
 
+fn write_frame_to_dt(argb_frame: &[u32], draw_buffer_width: i32, draw_buffer_height: i32, draw_buffer: &UnsafeDrawTarget<'_>) {
+
+}
 
 async fn write_historic_xy_points_to_dt(historic_xy_slice: &[(f32, f32)], draw_buffer_width: i32, draw_buffer_height: i32, draw_buffer: &UnsafeDrawTarget<'_>) {
   let draw_buffer: &mut [u32] = unsafe { &mut *draw_buffer.0.get() };

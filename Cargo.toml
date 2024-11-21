@@ -21,6 +21,7 @@ raqote =         { version = "0.8" }
 font-kit =       { version = "0.14" }
 num_cpus =       { version = "1.16" }
 tokio-scoped =   { version = "0.2"}
+image =          { version = "0.25"}
 
 [dependencies.opencl3]
 version = "0.9"

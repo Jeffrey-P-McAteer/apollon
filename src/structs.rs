@@ -81,6 +81,11 @@ pub struct Args {
     #[arg(long)]
     pub post_sim_cmd: Option<String>,
 
+    /// Pass the path to an image file to use this as the simulation background. White is used if unspecified.
+    #[arg(long)]
+    pub background_img: Option<String>,
+
+
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -178,6 +183,11 @@ pub struct SimControl {
     #[serde(default = "serde_default_max_historic_entity_locations")]
     pub max_historic_entity_locations: usize,
 
+    /// Path to image used as background of each frame; if unspecified we use white.
+    #[serde(default = "serde_default_background_img")]
+    pub background_img: String,
+
+
 }
 
 fn serde_empty_string()              -> String { String::new() }
@@ -203,6 +213,7 @@ fn serde_default_output_animation_frame_delay()  -> u32 { 250 }
 fn serde_default_max_entity_idx_to_name() -> usize { std::usize::MAX /* name everything*/ }
 fn serde_default_max_historic_entity_locations() -> usize { 8 }
 
+fn serde_default_background_img() -> String { "".to_string() }
 
 
 #[derive(Default, Debug, Clone, serde::Serialize)]
